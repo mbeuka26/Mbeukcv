@@ -1,0 +1,183 @@
+/* ════════════════════════════════════════════════════════════
+   Thème global — MbeukCV Pro (V2)
+   Repris du prototype original (sombre / doré, Syne + Inter)
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  --ink: #0a0a0f;
+  --gold: #d4a843;
+  --gold2: #f0c96a;
+  --red: #c8440e;
+  --blue: #1a3a5c;
+  --muted: #6b6873;
+  --border: #e8e5de;
+  --success: #1a7a3c;
+  --error: #c8440e;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--ink);
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ── APP SHELL (pages protégées) ── */
+.app-shell {
+  min-height: 100vh;
+  background: #f6f5f2;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: var(--ink);
+  color: white;
+}
+
+.app-logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.3rem;
+}
+.app-logo span {
+  color: var(--gold);
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.85rem;
+}
+
+.app-nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.app-nav-link {
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none !important;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.app-nav-link:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
+}
+.app-nav-link-active {
+  color: white;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-main {
+  padding: 32px 28px;
+}
+
+/* ── UI BUTTON (partagé) ── */
+.ui-btn {
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.ui-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.ui-btn-primary {
+  background: linear-gradient(135deg, var(--ink) 0%, var(--blue) 100%);
+  color: white;
+}
+.ui-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(10, 10, 15, 0.35);
+}
+.ui-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+
+.ui-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── OFFLINE INDICATOR ── */
+.offline-indicator {
+  background: #3a2200;
+  color: #f0c96a;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* ── PWA UPDATE TOAST ── */
+.pwa-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ink);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font-size: 0.82rem;
+  z-index: 1000;
+}
+.pwa-toast-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: var(--gold);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.pwa-toast-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+}

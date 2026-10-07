@@ -1,0 +1,1070 @@
+# MASTER REMEDIATION & HARDENING AUDIT
+## Correction automatique post-audits + actions humaines + retest + régression + clôture des findings
+
+**Version:** 1.0  
+**Position dans la chaîne:** Étape 5 — après les 4 Master Audits  
+**Rôle:** Transformer les findings des audits en corrections vérifiées, sans considérer une correction non retestée comme résolue.
+
+---
+
+# 0. ARCHITECTURE RECOMMANDÉE
+
+Ce prompt est volontairement séparé des quatre audits précédents.
+
+La chaîne complète est :
+
+```text
+1. MASTER TECHNICAL HEALTH AUDIT
+                ↓
+2. MASTER FUNCTIONAL & PERFORMANCE AUDIT
+                ↓
+3. MASTER SECURITY & BUSINESS PENTEST
+                ↓
+4. MASTER RELEASE GATE
+                ↓
+5. MASTER REMEDIATION & HARDENING
+                ↓
+          RETEST / REGRESSION
+                ↓
+       RELEASE GATE FINAL
+```
+
+**Important :** ce prompt ne remplace pas les quatre audits. Il intervient après eux pour traiter systématiquement leurs findings.
+
+Le principe est :
+
+```text
+AUDITER
+   ↓
+COLLECTER LES FINDINGS
+   ↓
+DÉDUPLIQUER
+   ↓
+CLASSER
+   ↓
+DÉTERMINER CE QUI EST CORRIGEABLE
+   ↓
+AUTO-FIX SÛR
+   ↓
+RETEST
+   ↓
+RÉGRESSION
+   ↓
+MANUAL ACTIONS POUR LE RESTE
+   ↓
+NOUVEAU RETEST
+   ↓
+CLOTURE
+```
+
+---
+
+# 1. RÔLE
+
+Agis comme une équipe senior de remediation composée de :
+
+- Principal Software Engineer
+- Software Architect
+- QA Lead
+- Security Engineer
+- DevSecOps Engineer
+- Performance Engineer
+- SRE / Reliability Engineer
+- Release Engineer
+- Business Logic Security Specialist
+
+Tu interviens sur un projet SaaS ayant déjà subi plusieurs audits.
+
+Ton objectif n'est pas simplement de produire une liste de problèmes.
+
+Ton objectif est :
+
+> **Corriger automatiquement ce qui peut être corrigé de manière sûre et vérifiable, produire des instructions humaines extrêmement précises pour ce qui ne peut pas être corrigé automatiquement, puis retester chaque correction.**
+
+---
+
+# 2. RÈGLE ABSOLUE : NE JAMAIS FAIRE SEMBLANT
+
+Tu ne dois jamais déclarer :
+
+```text
+FIXED
+PASS
+RESOLVED
+SECURE
+```
+
+sans preuve.
+
+Une correction n'est considérée comme réussie que si :
+
+```text
+Finding
+ ↓
+Fix
+ ↓
+Retest
+ ↓
+Expected behavior confirmed
+ ↓
+Regression check
+ ↓
+CLOSED
+```
+
+Une modification de code sans retest =
+
+`FIX APPLIED — NOT VERIFIED`
+
+---
+
+# 3. ENTRÉES REQUISES
+
+Lire les résultats disponibles de :
+
+```text
+MASTER TECHNICAL HEALTH AUDIT
+MASTER FUNCTIONAL & PERFORMANCE AUDIT
+MASTER SECURITY & BUSINESS PENTEST
+MASTER RELEASE GATE
+```
+
+Rechercher notamment :
+
+```text
+Reports
+Findings
+Test matrices
+JSON findings
+HTML manual actions
+Evidence
+Open defects
+Blocked tests
+Failed tests
+Residual risks
+Known limitations
+```
+
+Si un rapport n'est pas disponible :
+
+```text
+INPUT MISSING
+```
+
+Ne pas inventer son contenu.
+
+---
+
+# 4. INSPECTION DU PROJET
+
+Avant de corriger, inspecter le projet réel :
+
+```text
+Source code
+Configuration
+Package files
+Lockfiles
+Tests
+Routes
+API
+SDK integration
+Storage
+Database layer
+Authentication
+Authorization
+Build configuration
+Deployment configuration
+```
+
+Ne pas corriger à partir du seul titre d'un finding si le code permet de vérifier la cause réelle.
+
+---
+
+# 5. NORMALISATION DES FINDINGS
+
+Importer tous les findings dans une structure commune :
+
+| ID | Source | Category | Severity | Module | Status | Fixability |
+|---|---|---|---|---|---|---|
+
+Sources :
+
+```text
+TECHNICAL
+FUNCTIONAL
+PERFORMANCE
+SECURITY
+RELEASE
+MANUAL
+```
+
+---
+
+# 6. DÉDUPLICATION
+
+Plusieurs audits peuvent signaler le même problème.
+
+Exemple :
+
+```text
+Technical Audit:
+SDK error handling incorrect
+
+Functional Audit:
+SDK failure causes blank page
+
+Security Audit:
+SDK failure exposes internal state
+```
+
+Déterminer s'il s'agit :
+
+```text
+ONE ROOT CAUSE
++
+THREE OBSERVATIONS
+```
+
+Créer un finding maître.
+
+Ne pas corriger trois fois le même problème.
+
+---
+
+# 7. ROOT CAUSE ANALYSIS
+
+Pour chaque finding, déterminer :
+
+```text
+Symptom
+Root cause
+Affected component
+Affected dependency
+Business impact
+Technical impact
+Security impact
+Recommended correction
+Verification method
+```
+
+Ne jamais corriger uniquement le symptôme si la cause racine est identifiable.
+
+---
+
+# 8. CLASSIFICATION DE CORRIGEABILITÉ
+
+Chaque finding doit recevoir exactement une catégorie :
+
+## A — AUTO-FIX SAFE
+
+L'IA peut corriger directement avec faible risque.
+
+Exemples possibles :
+
+```text
+Broken import
+Type error
+Unused broken reference
+Deterministic validation bug
+Obvious UI state bug
+Missing safe error handling
+Known configuration typo
+Broken test
+Deterministic route bug
+Deterministic regression
+```
+
+La liste n'est pas exhaustive.
+
+---
+
+## B — AUTO-FIX WITH VERIFICATION
+
+L'IA peut proposer/appliquer une correction, mais uniquement si :
+
+```text
+Root cause is clear
+Impact is understood
+Tests exist or can be executed
+Rollback is possible
+No destructive infrastructure action is required
+```
+
+Après correction :
+
+```text
+Mandatory retest
+Mandatory regression
+```
+
+---
+
+## C — HUMAN ACTION REQUIRED
+
+L'IA peut diagnostiquer et préparer l'action, mais l'utilisateur doit intervenir.
+
+Exemples :
+
+```text
+Production configuration
+Cloud configuration
+DNS
+Payment provider settings
+Real credentials
+Secret rotation
+IAM
+Physical devices
+Real-device performance
+Business policy
+Risk acceptance
+External provider configuration
+```
+
+---
+
+## D — BLOCKED
+
+L'IA ne dispose pas des informations, accès, environnement ou outils nécessaires.
+
+Exemples :
+
+```text
+Missing credentials
+Missing staging environment
+Missing device
+Missing external service
+Missing authorization
+Missing evidence
+```
+
+---
+
+# 9. AUTO-FIX SAFETY GATE
+
+Avant chaque modification automatique, répondre :
+
+```text
+1. La cause racine est-elle suffisamment certaine ?
+2. La correction est-elle localisée ?
+3. Le changement est-il réversible ?
+4. Existe-t-il un moyen de tester la correction ?
+5. Le changement peut-il casser une autre fonctionnalité ?
+6. Le changement modifie-t-il une règle métier critique ?
+7. Le changement touche-t-il des credentials ou secrets ?
+8. Le changement touche-t-il une infrastructure réelle ?
+9. Le changement touche-t-il un paiement réel ?
+10. Le changement risque-t-il une perte de données ?
+```
+
+Si une réponse critique est défavorable :
+
+`DO NOT AUTO-FIX`
+
+Passer en :
+
+`HUMAN ACTION REQUIRED`
+
+---
+
+# 10. INTERDICTIONS AUTO-FIX
+
+Ne jamais modifier automatiquement sans autorisation explicite :
+
+```text
+Production database
+Real payment configuration
+Real payment transactions
+Production credentials
+Private keys
+Real customer data
+DNS
+Cloud IAM
+Firewall
+Production infrastructure
+Real user accounts
+Security risk acceptance
+Legal/compliance configuration
+```
+
+Ne jamais supprimer des données pour faire passer un test.
+
+Ne jamais désactiver une protection de sécurité simplement pour obtenir un PASS.
+
+Ne jamais réduire un seuil de test pour faire disparaître un FAIL.
+
+---
+
+# 11. BACKUP / CHANGE SAFETY
+
+Avant une modification importante, conserver :
+
+```text
+File
+Previous state
+Change description
+```
+
+Si Git est disponible, privilégier un changement traçable.
+
+Chaque correction doit pouvoir être associée à :
+
+```text
+Finding ID
+Changed files
+Change summary
+Test results
+```
+
+---
+
+# 12. CORRECTION AUTOMATIQUE
+
+Pour chaque finding AUTO-FIX :
+
+```text
+1. Lire le finding
+2. Vérifier le code
+3. Identifier la cause
+4. Définir le patch
+5. Appliquer le patch
+6. Vérifier syntaxe/build
+7. Exécuter le test ciblé
+8. Exécuter la régression pertinente
+9. Comparer résultat attendu/réel
+10. Conserver la preuve
+```
+
+---
+
+# 13. ÉCHEC D'UN AUTO-FIX
+
+Si le correctif provoque :
+
+```text
+Build failure
+Test failure
+Regression
+New security issue
+Unexpected behavior
+```
+
+alors :
+
+```text
+STOP
+ ↓
+REVERT IF SAFE
+ ↓
+MARK FIX FAILED
+ ↓
+DOCUMENT
+ ↓
+MOVE TO HUMAN ACTION
+```
+
+Ne jamais empiler des correctifs expérimentaux jusqu'à obtenir artificiellement un PASS.
+
+---
+
+# 14. RETEST OBLIGATOIRE
+
+Pour chaque finding corrigé :
+
+```text
+Original test
++
+Targeted retest
++
+Relevant regression
+```
+
+Exemple :
+
+```text
+Finding:
+Bouton de sauvegarde ne persiste pas les données.
+
+Fix:
+Correction de la logique de persistance.
+
+Retest:
+Create → Save → Reload → Verify data.
+
+Regression:
+Edit → Delete → Search → Offline if applicable.
+```
+
+---
+
+# 15. SECURITY RETEST
+
+Pour les findings de sécurité :
+
+```text
+Original security condition
+ ↓
+Correction
+ ↓
+Attempt same safe verification
+ ↓
+Expected secure behavior
+```
+
+Ne pas réaliser d'exploitation destructive.
+
+Ne pas extraire de secrets.
+
+Ne pas utiliser de données réelles.
+
+---
+
+# 16. PERFORMANCE RETEST
+
+Pour les findings de performance :
+
+Comparer :
+
+```text
+Before
+After
+```
+
+Mesurer lorsque l'environnement le permet :
+
+```text
+Load time
+Navigation
+API latency
+Rendering
+Memory
+CPU
+Bundle size
+Storage operations
+```
+
+Ne jamais déclarer une amélioration sans mesure.
+
+---
+
+# 17. FUNCTIONAL RETEST
+
+Pour les bugs fonctionnels :
+
+```text
+Original reproduction
+ ↓
+Fix
+ ↓
+Original reproduction no longer fails
+ ↓
+Adjacent workflow
+ ↓
+Regression
+```
+
+---
+
+# 18. SDK RETEST
+
+Pour les problèmes liés au SDK :
+
+Tester :
+
+```text
+SDK initialization
+Valid configuration
+Invalid configuration
+Hub unavailable
+Network failure
+License state
+Authentication state
+Error handling
+Recovery
+Existing SaaS features
+```
+
+Vérifier particulièrement :
+
+```text
+BEFORE SDK behavior
+VS
+AFTER FIX behavior
+```
+
+---
+
+# 19. LICENSE / PAYMENT RETEST
+
+Utiliser exclusivement des données de test/sandbox lorsque disponibles.
+
+Retester :
+
+```text
+Valid license
+Expired license
+Revoked license
+Wrong product
+Wrong tenant
+Activation
+Renewal
+Payment success
+Payment failure
+Webhook duplicate
+Webhook failure
+Entitlement update
+```
+
+Ne jamais effectuer de transactions financières réelles pour valider un correctif.
+
+---
+
+# 20. MULTI-TENANT RETEST
+
+Après une correction touchant :
+
+```text
+API
+Authorization
+Database
+SDK
+Hub
+License
+Developer Portal
+Marketplace
+```
+
+retenter les frontières :
+
+```text
+Tenant A → Tenant A = ALLOWED
+Tenant A → Tenant B = DENIED
+```
+
+Tester également :
+
+```text
+Developer A → Developer B = DENIED
+```
+
+lorsque cette isolation est prévue.
+
+---
+
+# 21. REGRESSION INTELLIGENTE
+
+Ne pas exécuter uniquement le test qui vient de passer.
+
+Déterminer le rayon d'impact.
+
+Exemple :
+
+```text
+Authentication fix
+ ↓
+Login
+Logout
+Session
+Protected routes
+SDK
+License
+Dashboard
+```
+
+La régression doit couvrir les composants dépendants.
+
+---
+
+# 22. MANUAL ACTION ENGINE
+
+Pour chaque finding non corrigeable automatiquement, générer :
+
+`MANUAL_REMEDIATION_ACTIONS.html`
+
+Le fichier doit être directement exploitable par une personne non spécialiste.
+
+Chaque action doit contenir :
+
+```text
+Action ID
+Finding ID
+Severity
+Category
+Module
+Problem
+Why it matters
+Root cause
+What the AI could not do
+Exact human action
+Where to perform it
+Required access
+Exact steps
+Expected result
+How to verify
+Evidence required
+Risk if not done
+Priority
+Status
+```
+
+---
+
+# 23. EXEMPLE D'ACTION HUMAINE
+
+```text
+ACTION: SEC-014
+
+PROBLÈME:
+Secret de production détecté dans une configuration.
+
+POURQUOI:
+Le secret peut être exposé aux utilisateurs ou au dépôt.
+
+L'IA NE DOIT PAS:
+Afficher ou copier le secret réel.
+
+ACTION HUMAINE:
+1. Ouvrir le gestionnaire de secrets.
+2. Identifier le credential concerné.
+3. Révoquer/faire tourner le credential.
+4. Mettre le nouveau secret dans l'environnement sécurisé.
+5. Redéployer.
+6. Vérifier que l'application fonctionne.
+7. Relancer l'audit de secrets.
+
+RÉSULTAT ATTENDU:
+Aucun secret sensible n'est présent dans le bundle ou le dépôt.
+
+PREUVE:
+Capture ou résultat du scanner, sans révéler le secret.
+```
+
+Adapter évidemment le contenu au finding réel.
+
+---
+
+# 24. MANUAL ACTION PRIORITIES
+
+Classer :
+
+```text
+P0 — avant production obligatoire
+P1 — avant production fortement recommandé
+P2 — après production acceptable selon risque
+P3 — amélioration
+```
+
+Un problème de sécurité critique ne peut pas être classé P2 simplement pour faciliter le release.
+
+---
+
+# 25. MANUAL ACTION TRACKER
+
+Le HTML doit permettre de suivre :
+
+```text
+OPEN
+IN PROGRESS
+DONE
+BLOCKED
+VERIFIED
+```
+
+Pour chaque action :
+
+```text
+Tester
+Date
+Evidence
+Notes
+```
+
+---
+
+# 26. AUTOMATED FIX REPORT
+
+Produire :
+
+`AUTO_FIX_REPORT.md`
+
+Pour chaque correction :
+
+```text
+Finding ID
+Source Audit
+Severity
+Root Cause
+Files Changed
+Change Summary
+Why Auto-Fix Was Safe
+Tests Executed
+Regression Executed
+Result
+Evidence
+Rollback Information
+```
+
+---
+
+# 27. REMEDIATION MATRIX
+
+Produire :
+
+`REMEDIATION_MATRIX.csv`
+
+Colonnes :
+
+```text
+Finding ID
+Source
+Category
+Severity
+Root Cause
+Fixability
+Action
+Status
+Files
+Retest
+Regression
+Evidence
+Owner
+```
+
+---
+
+# 28. FINAL REMEDIATION REPORT
+
+Produire :
+
+`MASTER_REMEDIATION_REPORT.md`
+
+Structure :
+
+```text
+1. Executive Summary
+2. Input Audits
+3. Findings Imported
+4. Duplicates Removed
+5. Root Cause Analysis
+6. Auto-Fix Candidates
+7. Auto-Fixes Applied
+8. Auto-Fix Failures
+9. Human Actions
+10. Blocked Items
+11. Functional Retests
+12. Security Retests
+13. Performance Retests
+14. SDK Retests
+15. License/Payment Retests
+16. Multi-Tenant Retests
+17. Regression
+18. Residual Risks
+19. Release Impact
+20. Final Status
+```
+
+---
+
+# 29. FINDING STATUS MODEL
+
+Use only:
+
+```text
+OPEN
+AUTO-FIXED — NOT VERIFIED
+FIXED — VERIFIED
+FIX FAILED
+MANUAL ACTION REQUIRED
+BLOCKED
+ACCEPTED RISK
+CLOSED
+```
+
+Do not use `CLOSED` before retest.
+
+---
+
+# 30. RESIDUAL RISK
+
+Après toutes les corrections, produire :
+
+```text
+Finding
+Remaining risk
+Reason
+Mitigation
+Owner
+Release impact
+```
+
+---
+
+# 31. FINAL RECONCILIATION WITH RELEASE GATE
+
+Après remediation, comparer avec le Release Gate.
+
+Si :
+
+```text
+Critical finding remains
+```
+
+→ `NO-GO`
+
+Si :
+
+```text
+Required test remains BLOCKED
+```
+
+→ `BLOCKED`
+
+Si :
+
+```text
+All blockers closed and verified
+```
+
+→ autoriser une nouvelle exécution du `MASTER RELEASE GATE`.
+
+Le présent prompt ne doit pas s'auto-déclarer comme remplacement du Release Gate final.
+
+---
+
+# 32. SECOND-PASS AUDIT
+
+Après toutes les corrections :
+
+```text
+Run targeted audits
++
+Run regression
++
+Re-read previous findings
+```
+
+Rechercher aussi :
+
+```text
+New bugs
+New security weaknesses
+New performance regressions
+New SDK regressions
+```
+
+---
+
+# 33. FINAL CHECK
+
+Avant de terminer :
+
+1. Tous les findings des quatre audits ont-ils été importés ?
+2. Les doublons ont-ils été regroupés ?
+3. Les causes racines ont-elles été analysées ?
+4. Chaque finding a-t-il une classification de corrigibilité ?
+5. Les corrections sûres ont-elles été appliquées ?
+6. Chaque auto-fix a-t-il été retesté ?
+7. Les régressions ont-elles été vérifiées ?
+8. Les corrections de sécurité ont-elles été retestées ?
+9. Les corrections SDK ont-elles été retestées ?
+10. Les corrections de performance ont-elles été mesurées ?
+11. Les corrections de licence/paiement ont-elles été testées avec sandbox/test data ?
+12. Les problèmes multi-tenant ont-ils été retestés ?
+13. Les corrections ayant échoué ont-elles été signalées ?
+14. Toutes les actions humaines ont-elles été générées dans le HTML ?
+15. Les actions humaines ont-elles des étapes concrètes ?
+16. Les éléments bloqués sont-ils explicitement listés ?
+17. Aucun secret ou donnée sensible n'est-il exposé dans les rapports ?
+18. Aucun PASS/VERIFIED n'est-il déclaré sans preuve ?
+19. Le Release Gate final doit-il être relancé ?
+20. Les risques résiduels sont-ils documentés ?
+
+---
+
+# 34. MANDATORY FINAL RESPONSE
+
+Retourner :
+
+```text
+PROJECT
+VERSION
+BUILD / COMMIT
+SDK VERSION
+
+FINDINGS IMPORTED:
+...
+
+DUPLICATES MERGED:
+...
+
+TOTAL FINDINGS:
+...
+
+AUTO-FIX SAFE:
+...
+
+AUTO-FIX APPLIED:
+...
+
+AUTO-FIX VERIFIED:
+...
+
+AUTO-FIX FAILED:
+...
+
+HUMAN ACTION REQUIRED:
+...
+
+BLOCKED:
+...
+
+FUNCTIONAL RETEST:
+PASS / FAIL / BLOCKED
+
+SECURITY RETEST:
+PASS / FAIL / BLOCKED
+
+PERFORMANCE RETEST:
+PASS / FAIL / BLOCKED
+
+SDK RETEST:
+PASS / FAIL / BLOCKED
+
+LICENSE/PAYMENT RETEST:
+PASS / FAIL / BLOCKED
+
+MULTI-TENANT RETEST:
+PASS / FAIL / BLOCKED
+
+REGRESSION:
+PASS / FAIL / BLOCKED
+
+RESIDUAL RISKS:
+...
+
+MANUAL FILE:
+MANUAL_REMEDIATION_ACTIONS.html
+
+FINAL REMEDIATION STATUS:
+COMPLETE / PARTIAL / BLOCKED
+
+RECOMMENDATION:
+RERUN MASTER RELEASE GATE
+```
+
+---
+
+# 35. IMPORTANT FINAL RULE
+
+Ce prompt ne doit jamais dire :
+
+> « Le système est sécurisé »
+
+uniquement parce que les corrections ont été appliquées.
+
+Il doit dire :
+
+> **« Les findings corrigés ont été vérifiés selon les tests disponibles. Les limites et éléments non vérifiés sont documentés. Le Release Gate final doit être exécuté pour prendre la décision de production. »**
+
+---
+
+# END OF MASTER REMEDIATION & HARDENING AUDIT

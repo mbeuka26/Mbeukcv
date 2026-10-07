@@ -1,0 +1,794 @@
+# MASTER RELEASE GATE
+## Final QA + Security + Technical + Functional + Performance + Manual Acceptance + GO/NO-GO
+
+**Version:** 1.0  
+**Purpose:** Final release decision after completion of the Technical Health, Functional & Performance, and Security & Business Pentest gates.  
+**Principle:** Consolidate evidence → Verify blockers → Assess residual risk → Manual acceptance → Release decision → Archive evidence.
+
+---
+
+# 0. ROLE
+
+Act as the final Release Engineering and Quality Board composed of:
+
+- Release Manager
+- QA Lead
+- Software Architect
+- DevOps Engineer
+- Security Lead
+- Product/Business Owner
+- Technical Lead
+
+The responsibility is **not to repeat every previous test**.
+
+The responsibility is to determine whether there is enough verified evidence to authorize production release.
+
+---
+
+# 1. ABSOLUTE RULE
+
+A release cannot be approved because:
+
+- the application looks good;
+- the AI believes it is safe;
+- a test was planned;
+- a test was not executed;
+- a developer says it works;
+- a prompt says PASS.
+
+Release decisions must be based on evidence.
+
+If evidence is missing:
+
+`BLOCKED / EVIDENCE REQUIRED`
+
+---
+
+# 2. REQUIRED INPUTS
+
+Collect the latest results from:
+
+```text
+MASTER TECHNICAL HEALTH AUDIT
+MASTER FUNCTIONAL & PERFORMANCE AUDIT
+MASTER SECURITY & BUSINESS PENTEST
+```
+
+Also collect:
+
+```text
+Version / commit
+Build artifact
+Deployment target
+Environment
+Release notes
+Known issues
+Open defects
+Manual test results
+Security exceptions
+Performance baseline
+Rollback plan
+Monitoring plan
+```
+
+If any required report is missing:
+
+`RELEASE GATE BLOCKED`
+
+---
+
+# 3. RELEASE CANDIDATE IDENTITY
+
+Record:
+
+```text
+Project:
+Product:
+Version:
+Git commit:
+Build ID:
+SDK version:
+API version:
+Release date:
+Environment:
+Target:
+```
+
+Verify that the tested build is the same build intended for production.
+
+Critical rule:
+
+> Do not approve one artifact based on tests performed against another artifact without documented equivalence.
+
+---
+
+# 4. GATE 1 — TECHNICAL HEALTH
+
+Read:
+
+`TECHNICAL_HEALTH_AUDIT_REPORT.md`
+
+Verify:
+
+```text
+Build
+Static analysis
+Dependencies
+Unit tests
+Integration tests
+SDK integration
+Architecture
+Data/storage
+API contracts
+CI/CD
+Regression
+```
+
+Required result:
+
+```text
+PASS
+or
+CONDITIONAL PASS with accepted risk
+```
+
+Any unresolved CRITICAL technical finding = release blocker unless formally accepted by the authorized owner under the project's risk policy.
+
+---
+
+# 5. GATE 2 — FUNCTIONAL & PERFORMANCE
+
+Read:
+
+`FUNCTIONAL_PERFORMANCE_AUDIT_REPORT.md`
+
+Verify:
+
+```text
+Critical user journeys
+CRUD
+Forms
+Navigation
+SDK functionality
+Regression
+PWA
+Offline
+Synchronization
+Browser
+Responsive
+Performance
+Large datasets
+Error recovery
+```
+
+Critical functional failure = blocker.
+
+Performance failures must be evaluated against defined product thresholds, not arbitrary assumptions.
+
+---
+
+# 6. GATE 3 — SECURITY & BUSINESS PENTEST
+
+Read:
+
+`SECURITY_BUSINESS_PENTEST_REPORT.md`
+
+Verify:
+
+```text
+Authentication
+Authorization
+IDOR/BOLA
+Multi-tenant isolation
+Admin protection
+API security
+SDK security
+License security
+Payment security
+Webhook security
+Secrets
+Database/storage
+Business logic
+```
+
+Any unresolved critical security vulnerability = NO-GO.
+
+High vulnerabilities require explicit risk acceptance according to the organization's release policy.
+
+Never silently override a security finding.
+
+---
+
+# 7. CROSS-GATE CONSISTENCY
+
+Compare the three reports.
+
+Search for contradictions such as:
+
+```text
+Technical report says PASS
+Security report says FAIL
+
+Functional report says PASS
+Manual evidence says FAIL
+
+SDK audit says version A
+Release candidate uses version B
+```
+
+Every contradiction must be resolved before release.
+
+---
+
+# 8. OPEN FINDINGS REGISTER
+
+Create:
+
+| ID | Gate | Severity | Description | Status | Owner | Risk Accepted? |
+|---|---|---|---|---|---|---|
+
+Statuses:
+
+```text
+OPEN
+FIXED
+RETESTED
+ACCEPTED RISK
+BLOCKED
+DEFERRED
+```
+
+A deferred issue must have:
+
+```text
+Reason
+Owner
+Target version/date
+Risk
+Mitigation
+```
+
+---
+
+# 9. RELEASE BLOCKERS
+
+At minimum consider these blockers:
+
+```text
+Build failure
+Critical functional failure
+Critical security vulnerability
+Broken authentication
+Broken authorization
+Tenant data leakage
+Admin privilege escalation
+Payment/license integrity failure
+Corrupted production migration
+No rollback path for critical release
+Untested release artifact
+Missing critical environment configuration
+```
+
+The project may add stricter blockers.
+
+---
+
+# 10. RISK ACCEPTANCE
+
+Never convert a finding to PASS merely because it is inconvenient to fix.
+
+For an accepted risk record:
+
+```text
+Finding ID
+Risk
+Business impact
+Technical impact
+Likelihood
+Mitigation
+Owner
+Expiration/review date
+Approval
+```
+
+If the project has no authorized risk-acceptance process:
+
+`RISK ACCEPTANCE NOT AVAILABLE`
+
+and do not silently approve the release.
+
+---
+
+# 11. RELEASE ARTIFACT VERIFICATION
+
+Verify:
+
+```text
+Build artifact
+Version
+Commit
+SDK version
+Configuration
+Environment variables
+Database migrations
+Static assets
+PWA assets
+Service worker
+API endpoint configuration
+```
+
+Check that no development configuration is accidentally being shipped.
+
+---
+
+# 12. DATABASE & MIGRATION RELEASE CHECK
+
+If database changes exist:
+
+Verify:
+
+```text
+Migration order
+Backward compatibility where required
+Rollback strategy
+Data integrity
+Indexes
+Constraints
+Seed/test data separation
+Production safety
+```
+
+Never execute destructive migration experiments on production.
+
+If rollback is impossible, document:
+
+`ROLLBACK LIMITATION`
+
+and assess whether this is acceptable.
+
+---
+
+# 13. CONFIGURATION CHECK
+
+Verify:
+
+```text
+Production API URL
+Hub URL
+SDK configuration
+Payment provider
+Authentication provider
+Storage
+Database
+CORS
+Domains
+Feature flags
+Monitoring
+Logging
+```
+
+Check that:
+
+```text
+Development
+≠
+Staging
+≠
+Production
+```
+
+where appropriate.
+
+---
+
+# 14. SECRETS CHECK
+
+Verify:
+
+- production secrets are configured;
+- development secrets are not deployed;
+- secrets are not committed;
+- secret rotation procedure exists where necessary.
+
+Never place secret values in the final report.
+
+---
+
+# 15. OBSERVABILITY
+
+Before release, verify that appropriate monitoring exists for:
+
+```text
+Application errors
+API errors
+Authentication failures
+Payment failures
+License failures
+SDK failures
+Database failures
+Synchronization failures
+Performance degradation
+```
+
+The required level depends on the SaaS criticality.
+
+If monitoring is absent:
+
+`OBSERVABILITY GAP`
+
+---
+
+# 16. ROLLBACK / RECOVERY
+
+Document:
+
+```text
+Rollback method
+Previous stable version
+Database rollback strategy
+Configuration rollback
+Asset rollback
+DNS/domain strategy where applicable
+Recovery owner
+Recovery procedure
+```
+
+The release cannot be considered operationally mature if nobody knows how to recover from a failed deployment.
+
+---
+
+# 17. FINAL MANUAL ACCEPTANCE
+
+The release owner must execute a human checklist against the actual release candidate.
+
+Generate:
+
+`MANUAL_PRODUCTION_RELEASE_ACCEPTANCE.html`
+
+Minimum checks:
+
+```text
+Login
+Logout
+Dashboard
+Critical workflow
+CRUD
+Navigation
+New tab
+Refresh
+Back/Forward
+Mobile
+PWA install
+Offline where applicable
+Reconnect
+Synchronization
+License
+Payment sandbox/controlled verification
+Admin
+Developer Portal
+Marketplace
+Notifications
+Export
+Import
+```
+
+For each:
+
+```text
+Expected
+Actual
+PASS/FAIL
+Evidence
+Tester
+Date
+```
+
+Do not mark tests performed by the AI if a real device/person is required.
+
+---
+
+# 18. SMOKE TEST
+
+Immediately before release, execute a short smoke suite on the release candidate:
+
+```text
+Application loads
+Authentication works
+Critical page opens
+Critical action works
+Data persistence works
+SDK initializes
+Hub communication works
+License state works
+Payment integration is reachable in the correct environment
+Logout works
+```
+
+Adapt to the product.
+
+---
+
+# 19. PRODUCTION POST-DEPLOYMENT SMOKE
+
+After deployment, perform a controlled production smoke test.
+
+Use safe test accounts/data where possible.
+
+Verify:
+
+```text
+Domain
+TLS
+Application loading
+Authentication
+Critical user journey
+SDK
+Hub
+License
+Payment configuration
+Database
+Monitoring
+```
+
+Do not perform destructive actions.
+
+---
+
+# 20. RELEASE DECISION MODEL
+
+Determine:
+
+### 🟢 GO
+
+All mandatory gates pass, no blocker remains, release artifact is verified, and manual acceptance is successful.
+
+### 🟡 CONDITIONAL GO
+
+No blocker remains, residual risks are explicitly documented and formally accepted.
+
+### 🔴 NO-GO
+
+A blocker remains.
+
+### ⚫ BLOCKED
+
+Required evidence, environment, approval or test is unavailable.
+
+---
+
+# 21. RELEASE DECISION TABLE
+
+Produce:
+
+| Gate | Result | Blocker | Evidence | Decision |
+|---|---|---|---|---|
+| Technical | | | | |
+| Functional | | | | |
+| Performance | | | | |
+| Security | | | | |
+| Manual | | | | |
+| Operations | | | | |
+
+---
+
+# 22. FINAL RELEASE CHECKLIST
+
+Verify:
+
+```text
+☐ Tested artifact = release artifact
+☐ Technical gate passed
+☐ Functional gate passed
+☐ Performance requirements satisfied
+☐ Security gate passed
+☐ No critical open finding
+☐ High findings addressed/accepted
+☐ SDK version verified
+☐ Hub integration verified
+☐ License flow verified
+☐ Payment flow verified
+☐ Multi-tenant isolation verified
+☐ Admin protection verified
+☐ Database migration reviewed
+☐ Production configuration reviewed
+☐ Secrets reviewed
+☐ Monitoring available
+☐ Rollback documented
+☐ Manual acceptance completed
+☐ Smoke test completed
+☐ Release owner approval obtained
+```
+
+---
+
+# 23. RELEASE EVIDENCE PACKAGE
+
+Produce:
+
+```text
+RELEASE_GATE_REPORT.md
+RELEASE_DECISION.json
+RELEASE_CHECKLIST.html
+RELEASE_EVIDENCE_INDEX.md
+```
+
+`RELEASE_DECISION.json`:
+
+```json
+{
+  "project": "",
+  "version": "",
+  "commit": "",
+  "sdk_version": "",
+  "environment": "",
+  "decision": "GO",
+  "timestamp": "",
+  "blockers": [],
+  "accepted_risks": [],
+  "approvals": []
+}
+```
+
+Never use `GO` unless the actual decision is GO.
+
+---
+
+# 24. RELEASE REPORT STRUCTURE
+
+The final report must contain:
+
+```text
+1. Executive Summary
+2. Release Candidate Identity
+3. Technical Gate
+4. Functional Gate
+5. Performance Gate
+6. Security Gate
+7. Cross-Gate Consistency
+8. Open Findings
+9. Risk Acceptance
+10. Artifact Verification
+11. Database/Migrations
+12. Configuration
+13. Secrets
+14. Observability
+15. Rollback
+16. Manual Acceptance
+17. Smoke Test
+18. Production Post-Deployment Smoke
+19. Residual Risks
+20. Final Decision
+21. Approvals
+22. Evidence Index
+```
+
+---
+
+# 25. NO-GO EXPLANATION
+
+If the result is NO-GO, provide:
+
+```text
+BLOCKER
+WHY IT BLOCKS RELEASE
+EVIDENCE
+RISK
+REQUIRED FIX
+RETEST REQUIRED
+RESPONSIBLE OWNER
+```
+
+Do not merely say "security issue found".
+
+---
+
+# 26. CONDITIONAL GO EXPLANATION
+
+If CONDITIONAL GO:
+
+```text
+Accepted risk
+Reason
+Impact
+Mitigation
+Owner
+Deadline/review date
+Approval
+```
+
+---
+
+# 27. FINAL QUALITY CONTROL
+
+Before making the release decision:
+
+1. Is the exact release artifact identified?
+2. Were all three master audits completed?
+3. Are their reports available?
+4. Are contradictions resolved?
+5. Are all critical findings closed?
+6. Are high-risk findings addressed or formally accepted?
+7. Is the SDK version correct?
+8. Is the Hub integration correct?
+9. Are license and payment flows verified?
+10. Is tenant isolation verified?
+11. Is admin access protected?
+12. Are migrations reviewed?
+13. Is production configuration correct?
+14. Are secrets safe?
+15. Is monitoring available?
+16. Is rollback documented?
+17. Has manual acceptance been completed?
+18. Has the release candidate passed smoke testing?
+19. Is post-deployment verification planned?
+20. Is the final decision supported by evidence?
+
+Any unresolved "No" must be explained.
+
+---
+
+# 28. MANDATORY FINAL RESPONSE
+
+Return:
+
+```text
+PROJECT
+VERSION
+COMMIT
+SDK VERSION
+ENVIRONMENT
+
+TECHNICAL GATE:
+PASS / FAIL / BLOCKED
+
+FUNCTIONAL GATE:
+PASS / FAIL / BLOCKED
+
+PERFORMANCE GATE:
+PASS / FAIL / BLOCKED
+
+SECURITY GATE:
+PASS / FAIL / BLOCKED
+
+MANUAL ACCEPTANCE:
+PASS / FAIL / BLOCKED
+
+OPERATIONS:
+PASS / FAIL / BLOCKED
+
+OPEN BLOCKERS:
+...
+
+ACCEPTED RISKS:
+...
+
+CORRECTIONS:
+...
+
+RETESTS:
+...
+
+RELEASE ARTIFACT VERIFIED:
+YES / NO
+
+ROLLBACK READY:
+YES / NO
+
+FINAL DECISION:
+GO / CONDITIONAL GO / NO-GO / BLOCKED
+
+REASON:
+...
+
+REQUIRED ACTIONS:
+...
+
+APPROVALS REQUIRED:
+...
+```
+
+**Never output GO when a mandatory gate is FAIL or BLOCKED.**
+
+---
+
+# END OF MASTER RELEASE GATE

@@ -1,0 +1,32 @@
+.recovery-setup {
+  margin: 0 0 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.12));
+  background: var(--paper, #f7f4ee);
+}
+
+.recovery-setup h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+
+.recovery-setup p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.recovery-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recovery-setup-info {
+  margin-top: 12px;
+  color: #2f6b45;
+}
+
+.recovery-setup-error {
+  margin-top: 12px;
+  color: #8d3d24;
+}

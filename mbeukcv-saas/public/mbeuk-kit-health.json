@@ -1,0 +1,14 @@
+{
+  "saas_root": "C:\\Users\\NATEIVA DOUALA\\MBEUKSAAS\\mbeukcv\\mbeukcv-saas",
+  "integration_kit_version": "1.7.0",
+  "pwa": {
+    "present": true,
+    "plugin": false,
+    "manifest": "public/manifest.webmanifest",
+    "serviceWorker": "public/mbeuk-sw.js"
+  },
+  "ok": true,
+  "message": "OK - Le kit et la PWA installable ont été bien connectés et vérifiés sans faille",
+  "issues": [],
+  "success_message": "OK - Le kit et la PWA installable ont été bien connectés et vérifiés sans faille"
+}

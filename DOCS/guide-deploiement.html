@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MbeukCV — Guide de déploiement</title>
+  <style>
+    :root {
+      --ink: #1c1915;
+      --muted: #5c564c;
+      --line: #d9d2c5;
+      --paper: #f6f3ec;
+      --sheet: #fffcf7;
+      --accent: #3d4f3a;
+      --warn: #8a4b12;
+      --warn-bg: #f8efe4;
+      --danger: #7a2e24;
+      --danger-bg: #f8ebe8;
+      --ok: #24523a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 17px/1.55 "Segoe UI", "Source Sans 3", sans-serif;
+    }
+    header.top {
+      background: #243026;
+      color: #f4f1ea;
+      padding: 28px 8vw 24px;
+    }
+    header.top p { margin: 8px 0 0; max-width: 68ch; color: #d5ddd2; }
+    h1 { font-size: 1.85rem; font-weight: 650; letter-spacing: -0.02em; margin: 0; }
+    .kicker { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: #c4d2bf; margin: 0 0 8px; }
+    nav.toc {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(246, 243, 236, 0.96);
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8vw;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+    }
+    nav.toc a { color: var(--accent); text-decoration: none; font-size: 0.92rem; }
+    nav.toc a:hover { text-decoration: underline; }
+    main { padding: 28px 8vw 72px; max-width: 980px; }
+    section {
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      padding: 22px 24px 8px;
+      margin: 0 0 18px;
+    }
+    h2 { font-size: 1.28rem; margin: 0 0 10px; }
+    h3 { font-size: 1.05rem; margin: 18px 0 8px; }
+    p, li { max-width: 72ch; }
+    code, pre {
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 0.86rem;
+    }
+    code { background: #efeae1; padding: 0.1em 0.35em; }
+    pre {
+      background: #1e241f;
+      color: #e7efe4;
+      padding: 14px 16px;
+      overflow-x: auto;
+      line-height: 1.45;
+    }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 0.95rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 8px 10px 8px 0; }
+    th { font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+    .note, .stop {
+      padding: 12px 14px;
+      margin: 12px 0 16px;
+      border-left: 3px solid var(--warn);
+      background: var(--warn-bg);
+    }
+    .stop { border-left-color: var(--danger); background: var(--danger-bg); }
+    label.step { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 8px; cursor: pointer; }
+    label.step input { margin-top: 0.35em; }
+    label.step.done span { color: var(--ok); text-decoration: line-through; }
+    footer { color: var(--muted); font-size: 0.9rem; padding: 0 0 28px; }
+    @media (max-width: 720px) {
+      header.top, nav.toc, main { padding-left: 18px; padding-right: 18px; }
+      section { padding: 16px 14px 4px; }
+      table { display: block; overflow-x: auto; }
+    }
+    @media print {
+      nav.toc { display: none; }
+      section { break-inside: avoid; }
+      body { background: white; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <p class="kicker">MbeukCV · deux applications · un Hub à part</p>
+    <h1>Guide de déploiement</h1>
+    <p>Ordre réel pour mettre en ligne MbeukCV Pro et MbeukCV SaaS. Aucune clé n’est écrite dans cette page. Les cases se souviennent dans ce navigateur seulement, pour suivre la checklist.</p>
+  </header>
+  <nav class="toc" aria-label="Sommaire">
+    <a href="#ordre">Ordre</a>
+    <a href="#pro">Pro</a>
+    <a href="#pro-supabase">Supabase Pro</a>
+    <a href="#drive">Drive</a>
+    <a href="#saas">SaaS</a>
+    <a href="#secrets">Secrets</a>
+    <a href="#controle">Contrôle</a>
+    <a href="#limites">Limites</a>
+    <a href="#retour">Retour arrière</a>
+  </nav>
+  <main>
+    <section id="ordre">
+      <h2>1. Ordre</h2>
+      <p>Deux produits coexistent. Ils ne partagent pas la même base ni le même stockage.</p>
+      <ol>
+        <li><strong>MbeukCV Pro</strong> (<code>mbeukcv-pro-v2</code>) peut être publié seul. Sans Supabase, il reste un poste local : CV dans le navigateur, clé Claude saisie sur l’appareil.</li>
+        <li><strong>Supabase Pro</strong> est optionnel. Il sert aux crédits, à l’e-mail, au matching et aux clés de collecte. Ce n’est pas le Hub.</li>
+        <li><strong>MbeukCV SaaS</strong> (<code>mbeukcv-saas</code>) est l’application Cloud, prévue pour Vercel, avec sa propre base Supabase.</li>
+        <li>Le <strong>Hub</strong> (licence, paiement, entitlement) reste un service séparé. On ne déploie pas les CV dans le Hub, et on ne met pas ses secrets dans le navigateur.</li>
+      </ol>
+      <div class="stop">
+        <strong>Ne jamais publier</strong> <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>ENCRYPTION_KEY</code>, <code>MBEUK_AUTH_BRIDGE_SECRET</code>, <code>CREDIT_GRANT_SECRET</code> ni une clé <code>sk-ant-</code> dans une variable <code>NEXT_PUBLIC_</code> ou <code>VITE_</code>. Ces préfixes arrivent dans le navigateur.
+      </div>
+    </section>
+
+    <section id="pro">
+      <h2>2. Publier MbeukCV Pro</h2>
+      <p>Répertoire : <code>mbeukcv-pro-v2</code>. La navigation est en hash (<code>#/parametres</code>), ce qui permet un hébergement de fichiers statiques.</p>
+      <h3>Build servi en HTTPS</h3>
+      <p>C’est le mode à utiliser dès qu’un dossier de récupération ou une PWA est attendu. Le choix de dossier et le service worker exigent une origine sécurisée. Un fichier ouvert en double-clic (<code>file://</code>) ne le permet pas.</p>
+      <pre>cd mbeukcv-pro-v2
+npm install
+npm test
+npm run build</pre>
+      <p>Le résultat est le dossier <code>dist/</code>. Placez-le derrière HTTPS (Vercel, Netlify, nginx, ou l’hébergement statique déjà utilisé). Toutes les routes reviennent sur <code>index.html</code> : avec le hash, aucune réécriture serveur n’est obligatoire.</p>
+      <h3>Fichier autonome</h3>
+      <pre>npm run build:standalone</pre>
+      <p>Le résultat est <code>dist-standalone/index.html</code>. Aucune clé n’est injectée au build. Ce mode sert de copie portable. Le dossier surveillé n’y fonctionne pas. L’export « Emporter une copie » reste le chemin de sortie des données.</p>
+      <h3>Avant de considérer Pro en ligne</h3>
+      <label class="step"><input type="checkbox" data-check="pro-test"><span><code>npm test</code> est vert dans <code>mbeukcv-pro-v2</code>.</span></label>
+      <label class="step"><input type="checkbox" data-check="pro-https"><span>L’adresse publique est en HTTPS, pas en <code>file://</code>.</span></label>
+      <label class="step"><input type="checkbox" data-check="pro-open"><span>L’accueil, Classique, IA, ATS, Recherche et Paramètres s’ouvrent.</span></label>
+      <label class="step"><input type="checkbox" data-check="pro-folder"><span>Paramètres permet de choisir un dossier. L’application crée <code>MbeukCV</code> dedans. Le bouton ne reste pas en chargement : au-delà de vingt secondes, un message doit apparaître.</span></label>
+      <label class="step"><input type="checkbox" data-check="pro-export"><span>Sur un téléphone sans choix de dossier, « Emporter une copie » télécharge un fichier <code>.mbeukpack</code>.</span></label>
+    </section>
+
+    <section id="pro-supabase">
+      <h2>3. Supabase Pro, seulement si les crédits sont voulus</h2>
+      <p>Sans URL dans Paramètres, Pro ne contacte pas cette base. Le détail opérationnel est dans <code>mbeukcv-pro-v2/supabase/README.md</code>. Résumé à suivre dans l’ordre.</p>
+      <ol>
+        <li>Créer un projet Supabase distinct de celui du SaaS.</li>
+        <li>Activer Authentication → Anonymous Sign-ins.</li>
+        <li>Exécuter <code>mbeukcv-pro-v2/supabase/schema.sql</code> dans le SQL Editor. Ne pas ajouter de <code>DROP</code> ni de <code>TRUNCATE</code>.</li>
+        <li>Créer une licence réelle dans <code>public.licences</code>. Le code d’exemple du README n’est pas une licence de production.</li>
+        <li>Déployer les fonctions :</li>
+      </ol>
+      <pre>supabase functions deploy generate-docs
+supabase functions deploy send-application
+supabase functions deploy scrape-offers --no-verify-jwt
+supabase functions deploy collect-offers
+supabase functions deploy source-keys
+supabase functions deploy refresh-matches</pre>
+      <p><code>scrape-offers</code> n’est pas appelée par l’écran. Elle n’accepte que l’en-tête <code>x-cron-secret</code> égal à <code>SCRAPE_CRON_SECRET</code>. Sans ce secret, la réponse est 401.</p>
+      <h3>Secrets de fonction, posés sur Supabase, pas dans Git</h3>
+      <pre>supabase secrets set MASTER_CLAUDE_KEY=...
+supabase secrets set BREVO_API_KEY=...
+supabase secrets set BREVO_FROM_EMAIL=...
+supabase secrets set BREVO_FROM_NAME="MbeukCV Pro"
+supabase secrets set SCRAPE_CRON_SECRET=...
+supabase secrets set JSEARCH_API_KEY=...
+supabase secrets set COLLECT_KEYS_KEY=...</pre>
+      <p><code>AFRICAWORK_API_URL</code> et <code>AFRICAWORK_API_KEY</code> ne se posent que si Africawork a fourni une adresse réelle.</p>
+      <div class="note">
+        <code>COLLECT_KEYS_KEY</code> doit faire au moins 16 caractères. Tant qu’elle est absente, les clés JSearch et Africawork restent en clair dans <code>cles_collecte.secret</code>. Avec elle, les nouvelles écritures sont chiffrées. Le client ne lit pas cette table : aucune policy ne l’y autorise.
+      </div>
+      <p>Dans Paramètres de l’application, saisir uniquement l’URL du projet et la clé <strong>anon</strong>. Jamais la clé service.</p>
+      <p>Le cron quotidien est le bloc SQL de la section 7 du README Supabase Pro. Remplacez la référence du projet et la valeur de <code>SCRAPE_CRON_SECRET</code>. <code>pg_cron</code> et <code>pg_net</code> doivent être activés.</p>
+      <label class="step"><input type="checkbox" data-check="sb-schema"><span>Schéma appliqué, sans suppression de table.</span></label>
+      <label class="step"><input type="checkbox" data-check="sb-anon"><span>Connexion anonyme activée. La clé service n’est pas dans l’interface.</span></label>
+      <label class="step"><input type="checkbox" data-check="sb-fns"><span>Les six fonctions sont déployées. <code>scrape-offers</code> répond 401 sans le secret.</span></label>
+      <label class="step"><input type="checkbox" data-check="sb-collect"><span><code>COLLECT_KEYS_KEY</code> est définie avant d’enregistrer des clés de collecte.</span></label>
+      <label class="step"><input type="checkbox" data-check="sb-licence"><span>Une licence réelle est saisie dans Paramètres, avec l’URL et la clé anon. « Tester la connexion » répond.</span></label>
+    </section>
+
+    <section id="drive">
+      <h2>4. Google Drive, optionnel</h2>
+      <p>Le bouton Drive n’apparaît que si le build Pro contient <code>VITE_GOOGLE_CLIENT_ID</code>. C’est l’identifiant OAuth public du projet Google, pas un secret de serveur.</p>
+      <ol>
+        <li>Dans Google Cloud, créer un client OAuth de type application Web.</li>
+        <li>Autoriser l’origine HTTPS exacte de Pro, et <code>http://localhost:5173</code> seulement pour les essais.</li>
+        <li>Le scope utilisé par l’application est <code>https://www.googleapis.com/auth/drive.file</code>. Elle ne demande pas l’accès à tout le Drive.</li>
+        <li>Sous PowerShell, avant le build : <code>$env:VITE_GOOGLE_CLIENT_ID="identifiant-public"</code> puis <code>npm run build</code>.</li>
+      </ol>
+      <p>Après un effacement des données du navigateur, Drive ne revient seul que si la session Google de ce navigateur existe encore. Sinon, l’utilisateur choisit à nouveau le dossier <code>MbeukCV</code>, ou importe le fichier <code>.mbeukpack</code>.</p>
+      <label class="step"><input type="checkbox" data-check="drive-id"><span>Si Drive est voulu : client OAuth créé, origine HTTPS autorisée, variable présente au build.</span></label>
+    </section>
+
+    <section id="saas">
+      <h2>5. Publier MbeukCV SaaS avec le workflow</h2>
+      <p>Le déploiement en ligne de SaaS n’est pas une saisie manuelle dans Vercel. Le fichier <code>mbeukcv-saas/.github/workflows/deploy.yml</code> le fait. Le guide pas à pas, avec les trois tableaux de secrets, est <code>mbeukcv-saas/docs/deploiement.html</code>.</p>
+      <p>Vous tapez ceci, puis GitHub publie Supabase et Vercel :</p>
+      <pre>cd "C:\Users\NATEIVA DOUALA\MBEUKSAAS\mbeukcv\mbeukcv-saas"
+npm run security
+npm test
+git push -u origin main</pre>
+      <p>Le job vert dépose les secrets Edge, déploie les fonctions de <code>supabase/edge-functions</code>, dépose les variables de production Vercel, puis publie le site. Il ne déploie pas Pro. Les migrations SQL restent manuelles.</p>
+      <p>Répertoire : <code>mbeukcv-saas</code>. Next.js 14. Le fichier <code>vercel.json</code> déclare deux tâches : <code>/api/cron/scrape</code> à 04:00 UTC et <code>/api/cron/cleanup</code> à 23:00 UTC. Vercel envoie <code>Authorization: Bearer</code> avec <code>CRON_SECRET</code>, que le workflow a déposé.</p>
+      <p>La base SaaS est un autre projet Supabase que celui de Pro. Le schéma est <code>mbeukcv-saas/supabase/schema.sql</code>, plus les migrations déjà présentes dans <code>supabase/migrations/</code> si elles ne sont pas encore appliquées sur ce projet. Ne pas fusionner les deux schémas. Ne pas activer l’écriture client des colonnes <code>supabase_service_role_key</code>, <code>claude_api_key</code> ou <code>rapidapi_key</code> de <code>user_profiles</code> : le code applicatif ne les utilise pas.</p>
+      <p>Le Hub reste <code>https://mbeukhub.vercel.app</code> sauf décision contraire. <code>MBEUK_PRODUCT_ID</code>, <code>MBEUK_APPLICATION_ID</code> et <code>MBEUK_HUB_API_KEY</code> viennent du portail Hub. Aucune clé Chariow ne se place dans ce dépôt : le paiement passe par le Hub.</p>
+      <label class="step"><input type="checkbox" data-check="saas-build"><span><code>npm run build</code> réussit dans <code>mbeukcv-saas</code>.</span></label>
+      <label class="step"><input type="checkbox" data-check="saas-env"><span>Les secrets SaaS sont dans GitHub Actions. Le workflow les a recopiés. Ils ne sont pas dans Git.</span></label>
+      <label class="step"><input type="checkbox" data-check="saas-enc"><span>Une copie de <code>ENCRYPTION_KEY</code> est conservée hors du dépôt et hors de la messagerie du projet.</span></label>
+      <label class="step"><input type="checkbox" data-check="saas-login"><span>Connexion, accueil, CV et paramètres s’ouvrent avec un compte réel.</span></label>
+      <label class="step"><input type="checkbox" data-check="saas-cron"><span>Les deux crons sont visibles dans Vercel et <code>CRON_SECRET</code> est le même des deux côtés.</span></label>
+    </section>
+
+    <section id="secrets">
+      <h2>6. Variables</h2>
+      <p>Pour le SaaS, vous ne saisissez les secrets que dans GitHub. Le workflow les recopie vers Vercel et vers les secrets Edge. Les trois tableaux sont dans <code>mbeukcv-saas/docs/deploiement.html</code>. Les valeurs ne sont dans aucun de ces fichiers.</p>
+      <h3>SaaS — visibles par le navigateur, via le workflow</h3>
+      <table>
+        <thead><tr><th>Nom</th><th>Rôle</th></tr></thead>
+        <tbody>
+          <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>URL du projet Supabase SaaS</td></tr>
+          <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td>Clé publique anon, protégée par les règles RLS</td></tr>
+        </tbody>
+      </table>
+      <h3>SaaS — serveur seulement</h3>
+      <table>
+        <thead><tr><th>Nom</th><th>Rôle</th></tr></thead>
+        <tbody>
+          <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Accès privilégié. Jamais dans le client</td></tr>
+          <tr><td><code>ENCRYPTION_KEY</code></td><td>Chiffre les clés Claude des comptes. Si elle est perdue, ces clés deviennent illisibles. Elle ne va pas dans un fichier de récupération</td></tr>
+          <tr><td><code>CRON_SECRET</code></td><td>Autorise les deux tâches Vercel</td></tr>
+          <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Extraction de fiche côté serveur</td></tr>
+          <tr><td><code>RAPIDAPI_KEY</code></td><td>JSearch de la plateforme</td></tr>
+          <tr><td><code>BREVO_API_KEY</code>, <code>BREVO_FROM_EMAIL</code>, <code>BREVO_FROM_NAME</code></td><td>E-mail. L’adresse d’envoi doit être vérifiée chez Brevo</td></tr>
+          <tr><td><code>MBEUK_HUB_URL</code>, <code>MBEUK_HUB_BASE_URL</code></td><td>Adresse du Hub</td></tr>
+          <tr><td><code>MBEUK_PRODUCT_ID</code>, <code>MBEUK_APPLICATION_ID</code>, <code>MBEUK_HUB_API_KEY</code></td><td>Identité du produit dans le Hub</td></tr>
+          <tr><td><code>MBEUK_AUTH_BRIDGE_SECRET</code></td><td>Pont d’authentification. Pas dans le navigateur</td></tr>
+          <tr><td><code>MBEUK_HUB_PRODUCT_*</code></td><td>Identifiants de forfaits. Sans eux, le paiement indiqué à l’écran est le reçu mobile</td></tr>
+          <tr><td><code>CREDIT_GRANT_SECRET</code></td><td>Le Hub l’envoie pour ajouter un forfait après paiement</td></tr>
+          <tr><td><code>AFRICAWORK_API_URL</code>, <code>AFRICAWORK_API_KEY</code></td><td>Optionnels, seulement avec une URL réelle</td></tr>
+          <tr><td><code>CONTACT_EMAIL</code></td><td>Adresse affichée au client. Pas un secret</td></tr>
+        </tbody>
+      </table>
+      <h3>Pro — au build, public</h3>
+      <table>
+        <thead><tr><th>Nom</th><th>Rôle</th></tr></thead>
+        <tbody>
+          <tr><td><code>VITE_GOOGLE_CLIENT_ID</code></td><td>Optionnel. Affiche le bouton Google Drive</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="controle">
+      <h2>7. Contrôle après mise en ligne</h2>
+      <label class="step"><input type="checkbox" data-check="c-local"><span>Pro sans Paramètres Supabase : un CV classique se crée et se rouvre après fermeture du navigateur.</span></label>
+      <label class="step"><input type="checkbox" data-check="c-key"><span>La clé Claude Pro, si elle est saisie, ne réapparaît pas en entier dans l’interface.</span></label>
+      <label class="step"><input type="checkbox" data-check="c-recover"><span>Une modification crée ou met à jour <code>recovery.current.mbeuk</code> dans le dossier <code>MbeukCV</code>, sans bouton Enregistrer à chaque page.</span></label>
+      <label class="step"><input type="checkbox" data-check="c-saas"><span>SaaS : un compte se connecte, la fiche CV se relit après une nouvelle session.</span></label>
+      <label class="step"><input type="checkbox" data-check="c-logs"><span>Les journaux Vercel et Supabase ne contiennent pas de clé <code>sk-ant-</code> ni de service role.</span></label>
+      <p>Le SaaS a un workflow : <code>mbeukcv-saas/.github/workflows/deploy.yml</code>. Pro n’en a pas. Le test Pro ne contacte pas une base, sauf si <code>MBEUK_TEST_DATABASE_URL</code> est défini pour <code>supabase/tests/check-revokes.sql</code>.</p>
+    </section>
+
+    <section id="limites">
+      <h2>8. Limites à connaître avant de promettre le service</h2>
+      <ul>
+        <li>Effacer les données du site retire la permission du dossier. Le navigateur ne peut pas le rouvrir seul. Drive revient sans clic seulement si la session Google est encore ouverte.</li>
+        <li>Sur iPhone, un dossier surveillé en continu n’est en général pas disponible. Le fichier exporté, gardé dans Fichiers, est le chemin prévu.</li>
+        <li><code>navigator.storage.persist()</code> réduit le risque d’effacement sous pression disque. Ce n’est pas une copie de secours.</li>
+        <li>La clé Claude de travail de Pro reste lisible par une extension de la même origine. La copie qui sort du navigateur est chiffrée.</li>
+        <li>Perdre <code>ENCRYPTION_KEY</code> du SaaS rend illisibles les clés Claude déjà enregistrées dans les comptes. Il n’existe pas de réparation côté client.</li>
+        <li>La synchronisation Cloud des CV classiques Pro n’est pas en place. Le mode hub et le mode local ne fusionnent pas les deux historiques.</li>
+      </ul>
+    </section>
+
+    <section id="retour">
+      <h2>9. Retour arrière</h2>
+      <p>Pro : retirer la publication du dossier <code>dist/</code> et republier le build précédent. Les CV déjà dans les navigateurs restent dans IndexedDB. Les fichiers <code>MbeukCV</code> déjà écrits sur les postes restent sur les postes.</p>
+      <p>SaaS : dans Vercel, promouvoir le déploiement précédent. Ne pas changer <code>ENCRYPTION_KEY</code> pendant ce retour : les clés déjà chiffrées avec l’ancienne valeur ne se liront plus.</p>
+      <p>Supabase : ne pas lancer de script qui supprime <code>licences</code>, <code>historique_cv</code>, <code>cles_collecte</code> ou <code>user_profiles</code> pour « repartir propre ». Une correction de schéma se fait par ajout, après copie de sauvegarde du projet.</p>
+    </section>
+
+    <footer>
+      Document produit pour le dépôt MbeukCV. Il décrit le déploiement. Il ne remplace pas un essai sur l’adresse publique.
+    </footer>
+  </main>
+  <script>
+    const boxes = document.querySelectorAll('input[data-check]');
+    const storageKey = 'mbeukcv-deploy-checks';
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch (error) { saved = {}; }
+    boxes.forEach((box) => {
+      const id = box.getAttribute('data-check');
+      box.checked = saved[id] === true;
+      box.closest('label').classList.toggle('done', box.checked);
+      box.addEventListener('change', () => {
+        saved[id] = box.checked;
+        box.closest('label').classList.toggle('done', box.checked);
+        localStorage.setItem(storageKey, JSON.stringify(saved));
+      });
+    });
+  </script>
+</body>
+</html>

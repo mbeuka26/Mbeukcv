@@ -1,0 +1,113 @@
+.doc-preview {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.doc-preview-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 10px 0;
+  background: #f6f5f2;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-tab {
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 10px 10px 0 0;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.doc-tab:hover {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.03);
+}
+.doc-tab-active {
+  color: var(--ink);
+  background: white;
+  box-shadow: inset 0 -2px 0 var(--gold);
+}
+
+.doc-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.doc-preview-current {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.doc-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--ink) 0%, var(--blue) 100%);
+  color: white;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.doc-download-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(10, 10, 15, 0.25);
+}
+.doc-download-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.doc-preview-error {
+  margin: 0 18px 12px;
+  padding: 10px 14px;
+  background: #fff0f0;
+  color: var(--error);
+  border: 1px solid rgba(200, 68, 14, 0.2);
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+
+.doc-preview-frame-wrap {
+  background: #e9e7e1;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  max-height: 75vh;
+  overflow: auto;
+}
+
+.doc-preview-frame {
+  width: 210mm;
+  height: 297mm;
+  max-width: 100%;
+  border: 0;
+  background: white;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .doc-preview-frame-wrap {
+    padding: 12px;
+  }
+  .doc-preview-frame {
+    width: 100%;
+    height: 140vw;
+  }
+}

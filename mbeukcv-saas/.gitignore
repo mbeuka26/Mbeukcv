@@ -1,0 +1,8 @@
+node_modules
+public/pro
+.next
+.vercel
+.env
+.env.local
+.env.production
+*.log

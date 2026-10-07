@@ -1,0 +1,92 @@
+.email-form {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 20px;
+}
+
+.email-form-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.email-form-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.6;
+  background: #f6f5f2;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+}
+
+.email-download-btn {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.email-form-field {
+  margin-bottom: 16px;
+}
+
+.email-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.email-input:focus {
+  border-color: var(--blue);
+}
+.email-input:disabled {
+  background: #f6f5f2;
+  opacity: 0.7;
+}
+
+.email-attachments-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.email-attachment-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.email-attachment-option:has(input:checked) {
+  border-color: var(--gold);
+  background: #fffdf5;
+}
+
+.email-success {
+  margin-top: 14px;
+  padding: 11px 14px;
+  background: #f0fff5;
+  color: var(--success);
+  border: 1px solid rgba(26, 122, 60, 0.2);
+  border-radius: 10px;
+  font-size: 0.82rem;
+}
+
+.email-send-btn {
+  width: 100%;
+  margin-top: 18px;
+}

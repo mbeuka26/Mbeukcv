@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MbeukCV — Déploiement de A à Z</title>
+  <style>
+    :root {
+      --paper: #f3eee6;
+      --surface: #fbf8f3;
+      --ink: #1d1916;
+      --muted: #5f574e;
+      --line: #e0d6c8;
+      --sidebar: #26211d;
+      --accent: #8d3d24;
+      --ok: #2f6b45;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 17px/1.5 "Segoe UI", "Source Sans 3", sans-serif;
+    }
+    header {
+      background: var(--sidebar);
+      color: #f3eee6;
+      padding: 28px 20px 24px;
+    }
+    header, main { max-width: 820px; margin: 0 auto; }
+    header { max-width: none; }
+    header div { max-width: 820px; margin: 0 auto; }
+    h1 { font-family: Georgia, "Source Serif 4", serif; font-size: 34px; font-weight: 600; margin: 0 0 8px; }
+    h2 { font-family: Georgia, "Source Serif 4", serif; font-size: 24px; margin: 0 0 8px; }
+    p { margin: 0 0 12px; }
+    main { padding: 28px 20px 64px; }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 18px 18px 8px;
+      margin: 0 0 14px;
+    }
+    .step {
+      display: inline-block;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    code, pre {
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 14px;
+    }
+    pre {
+      background: #26211d;
+      color: #f3eee6;
+      padding: 12px 14px;
+      overflow-x: auto;
+      margin: 0 0 14px;
+    }
+    table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 15px; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 8px 8px 8px 0; }
+    th { font-size: 13px; color: var(--muted); font-weight: 700; }
+    .warn { border-left: 3px solid var(--accent); padding-left: 12px; }
+    .ok { color: var(--ok); font-weight: 700; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <p class="step">MbeukCV</p>
+      <h1>Déploiement de A à Z</h1>
+      <p>Un push sur la branche <code>main</code> déclenche GitHub Actions. Le workflow vérifie la sécurité, dépose les clés, publie les Edge Functions sur Supabase, puis publie le site sur Vercel. S’il manque une clé ou s’il trouve une faille dans le dépôt, il s’arrête et l’erreur reste dans le journal GitHub.</p>
+    </div>
+  </header>
+  <main>
+    <section class="warn">
+      <h2>Avant toute commande</h2>
+      <p>Ce guide ne contient aucune clé. Ne collez jamais une clé dans ce fichier, dans un message, ni dans le code. Vous les saisissez une fois dans GitHub. Le workflow les recopie ensuite.</p>
+      <p>Le fichier actif est <code>.github/workflows/deploy.yml</code> à la racine du dépôt. Cette racine est le dossier qui contient <code>mbeukcv-saas</code> et <code>mbeukcv-pro-v2</code>. Le nom du produit est MbeukCV. Le site principal est le SaaS. Le bouton « MbeukCV Pro » ouvre <code>/pro/index.html</code>, construit pendant le workflow.</p>
+      <p>Les migrations SQL ne partent pas toutes seules. Les lancer automatiquement sur la base de production pourrait casser les données. Elles restent une étape manuelle, plus bas.</p>
+    </section>
+
+    <section>
+      <p class="step">Ce que le workflow fait</p>
+      <h2>Supabase, puis Vercel</h2>
+      <p>Après un push sur <code>main</code>, et seulement si le job « Contrôles de sécurité » est vert, le job « Supabase puis Vercel » fait ceci, dans cet ordre :</p>
+      <ol>
+        <li>Il vérifie que les secrets GitHub obligatoires sont présents. Il n’écrit pas leurs valeurs dans le journal.</li>
+        <li>Il dépose les secrets Edge du SaaS sur Supabase avec <code>supabase secrets set</code>.</li>
+        <li>Il déploie les Edge Functions du SaaS, copiées depuis <code>mbeukcv-saas/supabase/edge-functions</code>, avec <code>supabase functions deploy</code>.</li>
+        <li>Si <code>SUPABASE_PRO_PROJECT_REF</code> est renseigné, il dépose les secrets de MbeukCV Pro sur l’autre projet Supabase et déploie les fonctions de <code>mbeukcv-pro-v2/supabase/functions</code>. Sans cette référence, Pro reste utilisable en local et cette étape est sautée. Le déploiement SaaS ne s’arrête pas pour autant.</li>
+        <li>Il construit MbeukCV Pro avec <code>VITE_BASE=/pro/</code> et le place dans le site, au chemin <code>/pro/index.html</code>.</li>
+        <li>Il dépose les variables de production sur le projet Vercel, puis il publie le site avec <code>vercel deploy --prebuilt --prod</code>.</li>
+      </ol>
+      <p>Les fonctions publiées sont : <code>hub-auth-login</code>, <code>hub-auth-logout</code>, <code>hub-auth-refresh</code>, <code>hub-auth-register</code>, <code>hub-auth-forgot-password</code>, <code>hub-checkout</code>, <code>hub-diagnostics</code>, <code>hub-license-status</code>, <code>hub-me</code>, <code>hub-sync-license</code>, <code>hub-validate-promo</code>, <code>validate-trial</code>.</p>
+      <p>Une pull request lance seulement les contrôles. Elle ne touche ni Supabase ni Vercel. Vous ne retapez pas les clés dans les écrans Vercel ou Supabase : si vous les changez, vous les changez dans GitHub, puis vous poussez à nouveau.</p>
+      <p>Ce workflow ne déploie pas MbeukCV Pro (<code>mbeukcv-pro-v2</code>), ni ses fonctions <code>generate-docs</code>, <code>collect-offers</code>, <code>source-keys</code>. Il ne pose pas <code>COLLECT_KEYS_KEY</code>. Pro reste une publication séparée.</p>
+      <h3>Commandes à taper, dans l’ordre</h3>
+      <p>PowerShell. Le déploiement en ligne, lui, est le dernier <code>git push</code>. Vous ne lancez pas <code>vercel</code> ni <code>supabase functions deploy</code> à la main.</p>
+      <pre>cd "C:\Users\NATEIVA DOUALA\MBEUKSAAS\mbeukcv"
+cd mbeukcv-saas
+npm run security
+npm test
+cd ..
+git status
+git add .
+git commit -m "Préparer le déploiement de MbeukCV."
+git push -u origin main</pre>
+      <p>Ensuite, ouvrez l’onglet Actions du dépôt. Si l’environnement <code>production</code> a un reviewer, approuvez le job « Supabase puis Vercel ». Un journal vert veut dire : secrets Edge déposés, fonctions déployées, variables Vercel déposées, site publié.</p>
+    </section>
+
+    <section>
+      <p class="step">Étape A</p>
+      <h2>Contrôle local</h2>
+      <p>Dans PowerShell, depuis le dossier du projet :</p>
+      <pre>cd "C:\Users\NATEIVA DOUALA\MBEUKSAAS\mbeukcv\mbeukcv-saas"
+npm run security
+npm test</pre>
+      <p>La dernière ligne attendue du contrôle est <span class="ok">OK — barrière de sécurité locale passée</span>. S’il affiche <code>BLOQUÉ</code>, corrigez cette ligne avant de pousser. Le fichier <code>.env.local</code> peut exister sur votre machine : il est ignoré par Git.</p>
+    </section>
+
+    <section>
+      <p class="step">Étape B</p>
+      <h2>Générer les secrets qui vous appartiennent</h2>
+      <p>Lancez la commande une fois par secret. Ne réutilisez pas la même valeur pour deux secrets. Gardez chaque résultat dans un gestionnaire de mots de passe, pas dans le dépôt.</p>
+      <pre>[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))</pre>
+      <p>À générer ainsi : <code>ENCRYPTION_KEY</code> (32 caractères minimum), <code>CRON_SECRET</code> (16 minimum), <code>MBEUK_AUTH_BRIDGE_SECRET</code> (32 minimum), <code>CREDIT_GRANT_SECRET</code> si vous activez le crédit automatique.</p>
+    </section>
+
+    <section>
+      <p class="step">Étape C</p>
+      <h2>Créer le dépôt GitHub</h2>
+      <pre>cd "C:\Users\NATEIVA DOUALA\MBEUKSAAS\mbeukcv"
+git init
+git add .
+git status</pre>
+      <p><code>git status</code> ne doit pas lister <code>.env</code>, <code>.env.local</code> ni <code>.env.production</code>. S’ils apparaissent, ne les ajoutez pas.</p>
+      <pre>git commit -m "Préparer le déploiement sécurisé de MbeukCV."
+gh repo create mbeukcv-saas --private --source=. --remote=origin</pre>
+      <p>Sans GitHub CLI, créez un dépôt privé vide sur github.com, puis :</p>
+      <pre>git remote add origin https://github.com/VOTRE_COMPTE/mbeukcv-saas.git
+git branch -M main
+git push -u origin main</pre>
+    </section>
+
+    <section>
+      <p class="step">Étape D</p>
+      <h2>Créer les projets Vercel et Supabase</h2>
+      <p>Sur Vercel, créez un projet vide relié plus tard à ce dépôt, ou notez les identifiants d’un projet déjà créé. Il vous faut l’identifiant d’équipe (<code>VERCEL_ORG_ID</code>) et l’identifiant de projet (<code>VERCEL_PROJECT_ID</code>). Le jeton se crée dans Vercel, Account, Tokens. Donnez-lui uniquement ce projet.</p>
+      <p>Sur Supabase, le jeton d’accès se crée dans Account, Access Tokens. La référence du projet est l’identifiant dans l’adresse <code>https://REFERENCE.supabase.co</code>. C’est <code>SUPABASE_PROJECT_REF</code>.</p>
+      <p>Le produit et l’application se créent dans le portail développeur du Hub. Leurs identifiants sont des UUID : <code>MBEUK_PRODUCT_ID</code> et <code>MBEUK_APPLICATION_ID</code>. Sans ces deux UUID, le workflow s’arrête. C’est voulu.</p>
+    </section>
+
+    <section>
+      <p class="step">Étape E</p>
+      <h2>Déposer les secrets dans GitHub</h2>
+      <p>Tous les noms ci-dessous se créent au même endroit : dépôt GitHub, Settings, Secrets and variables, Actions, New repository secret. Vous ne les recopiez pas à la main dans Vercel ni dans Supabase. Le workflow s’en charge au prochain push sur <code>main</code>.</p>
+      <h3>Restent dans GitHub seulement</h3>
+      <p>Ce sont les clés qui autorisent le workflow à parler à Vercel et à Supabase. Elles ne sont pas recopiées dans le site.</p>
+      <table>
+        <thead><tr><th>Nom GitHub</th><th>Obligatoire</th><th>Rôle</th></tr></thead>
+        <tbody>
+          <tr><td><code>VERCEL_TOKEN</code></td><td>Oui</td><td>Jeton Vercel, limité à ce projet</td></tr>
+          <tr><td><code>VERCEL_ORG_ID</code></td><td>Oui</td><td>Identifiant d’équipe Vercel</td></tr>
+          <tr><td><code>VERCEL_PROJECT_ID</code></td><td>Oui</td><td>Identifiant du projet Vercel</td></tr>
+          <tr><td><code>SUPABASE_ACCESS_TOKEN</code></td><td>Oui</td><td>Jeton de compte Supabase</td></tr>
+          <tr><td><code>SUPABASE_PROJECT_REF</code></td><td>Oui</td><td>Référence dans <code>https://REFERENCE.supabase.co</code></td></tr>
+        </tbody>
+      </table>
+      <h3>GitHub, puis déposés sur Vercel</h3>
+      <p>Variables de production du projet Vercel. Le workflow les crée ou les met à jour. Il ne les affiche pas.</p>
+      <table>
+        <thead><tr><th>Nom GitHub</th><th>Obligatoire</th><th>Nom écrit sur Vercel</th></tr></thead>
+        <tbody>
+          <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>ENCRYPTION_KEY</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>CRON_SECRET</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>RAPIDAPI_KEY</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_HUB_URL</code></td><td>Oui</td><td>le même nom. Valeur : <code>https://mbeukhub.vercel.app</code></td></tr>
+          <tr><td><code>MBEUK_HUB_API_KEY</code></td><td>Oui</td><td>le même nom. Jamais en <code>NEXT_PUBLIC_</code></td></tr>
+          <tr><td><code>MBEUK_PRODUCT_ID</code></td><td>Oui</td><td>le même nom, UUID</td></tr>
+          <tr><td><code>MBEUK_APPLICATION_ID</code></td><td>Oui</td><td>le même nom, UUID</td></tr>
+          <tr><td><code>MBEUK_AUTH_BRIDGE_SECRET</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Non</td><td>le même nom, seulement si vous le renseignez</td></tr>
+          <tr><td><code>BREVO_API_KEY</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>BREVO_FROM_EMAIL</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>BREVO_FROM_NAME</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>CONTACT_EMAIL</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>CREDIT_GRANT_SECRET</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_HUB_BASE_URL</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_HUB_PRODUCT_CLAUDE_10</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_HUB_PRODUCT_CLAUDE_30</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_HUB_PRODUCT_CLAUDE_80</code></td><td>Non</td><td>le même nom</td></tr>
+        </tbody>
+      </table>
+      <p><code>MBEUK_ENVIRONMENT</code> n’est pas un secret à créer. Le workflow écrit lui-même la valeur <code>production</code> sur Vercel et sur Supabase.</p>
+      <h3>GitHub, puis déposés dans les secrets Edge Supabase</h3>
+      <table>
+        <thead><tr><th>Nom GitHub</th><th>Obligatoire</th><th>Nom écrit dans Supabase</th></tr></thead>
+        <tbody>
+          <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Oui</td><td><code>MBEUK_SERVICE_ROLE_KEY</code></td></tr>
+          <tr><td><code>MBEUK_HUB_URL</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_HUB_API_KEY</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_PRODUCT_ID</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_APPLICATION_ID</code></td><td>Oui</td><td>le même nom</td></tr>
+          <tr><td><code>MBEUK_AUTH_BRIDGE_SECRET</code></td><td>Oui</td><td>le même nom</td></tr>
+        </tbody>
+      </table>
+      <h3>Optionnels — second projet Supabase, pour le cloud de MbeukCV Pro</h3>
+      <p>À créer dans GitHub seulement si Pro doit avoir ses crédits, ses e-mails et sa collecte. Ils ne vont pas sur le projet Supabase du SaaS. Le workflow les dépose sur le projet <code>SUPABASE_PRO_PROJECT_REF</code>, puis déploie ses Edge Functions. Ce n’est pas le même projet que <code>SUPABASE_PROJECT_REF</code>.</p>
+      <table>
+        <thead><tr><th>Nom GitHub</th><th>Obligatoire</th><th>Écrit dans le Supabase Pro</th></tr></thead>
+        <tbody>
+          <tr><td><code>SUPABASE_PRO_PROJECT_REF</code></td><td>Non</td><td>Non. Sert seulement au workflow pour viser le bon projet. Le jeton reste <code>SUPABASE_ACCESS_TOKEN</code>.</td></tr>
+          <tr><td><code>COLLECT_KEYS_KEY</code></td><td>Non</td><td>le même nom. 16 caractères minimum, sinon les clés de collecte restent en clair.</td></tr>
+          <tr><td><code>MASTER_CLAUDE_KEY</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>SCRAPE_CRON_SECRET</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>JSEARCH_API_KEY</code></td><td>Non</td><td>le même nom</td></tr>
+          <tr><td><code>PRO_BREVO_API_KEY</code></td><td>Non</td><td><code>BREVO_API_KEY</code></td></tr>
+          <tr><td><code>PRO_BREVO_FROM_EMAIL</code></td><td>Non</td><td><code>BREVO_FROM_EMAIL</code></td></tr>
+          <tr><td><code>AFRICAWORK_API_URL</code></td><td>Non</td><td>le même nom, seulement avec une URL réelle</td></tr>
+          <tr><td><code>AFRICAWORK_API_KEY</code></td><td>Non</td><td>le même nom</td></tr>
+        </tbody>
+      </table>
+      <p>Ne créez pas de secret Chariow ni de valeur <code>whsec_</code> dans ce dépôt. Le webhook Pulse reste sur le Hub : <code>https://mbeukhub.vercel.app/api/webhooks/chariow</code>.</p>
+    </section>
+
+    <section>
+      <p class="step">Étape F</p>
+      <h2>Protéger l’environnement production</h2>
+      <p>GitHub, Settings, Environments, New environment, nom exact : <code>production</code>. Ajoutez Required reviewers avec votre compte. Le workflow ne publie qu’après votre approbation. Une pull request lance les contrôles, elle ne publie pas.</p>
+    </section>
+
+    <section>
+      <p class="step">Étape G</p>
+      <h2>Pousser et lire le résultat</h2>
+      <pre>git push -u origin main</pre>
+      <p>Ouvrez l’onglet Actions du dépôt. Le job « Contrôles de sécurité » passe en premier. Ensuite « Supabase puis Vercel » attend votre approbation si vous avez activé les reviewers.</p>
+      <p>Ce que le contrôle vérifie, sans afficher les valeurs :</p>
+      <ul>
+        <li>aucune clé serveur dans les écrans du navigateur ;</li>
+        <li>aucun <code>NEXT_PUBLIC_</code> pour la clé Hub, le rôle service, RapidAPI, Claude, Brevo ou le cron ;</li>
+        <li>la clé service reste dans un module <code>server-only</code> ;</li>
+        <li>le cron refuse la collecte si <code>CRON_SECRET</code> est absent ;</li>
+        <li>l’activation de crédit compare le secret sans fuite de durée ;</li>
+        <li>les tables métier ont le verrouillage par ligne dans <code>supabase/schema.sql</code> ;</li>
+        <li>les en-têtes empêchent l’affichage du site dans une autre page ;</li>
+        <li>une alerte haute ou critique nouvelle dans les dépendances bloque. Les alertes Next.js 14 déjà connues, dont le correctif npm exige Next.js 16, sont signalées et ne bloquent pas.</li>
+      </ul>
+    </section>
+
+    <section>
+      <p class="step">Étape H</p>
+      <h2>Si le journal affiche BLOQUÉ</h2>
+      <p>Le déploiement s’arrête à la première série en échec. Ouvrez le job rouge, cherchez la ligne <code>BLOQUÉ —</code>. Elle nomme la règle ou le secret, pas sa valeur.</p>
+      <p>Exemples : <code>secret absent : MBEUK_PRODUCT_ID</code>, <code>format UUID attendu</code>, <code>clé serveur visible côté client</code>. Corrigez, commitez, poussez à nouveau. Tant que le contrôle est rouge, Vercel et Supabase ne sont pas mis à jour.</p>
+    </section>
+
+    <section>
+      <p class="step">Étape I</p>
+      <h2>Migrations SQL, à la main</h2>
+      <p>Dans l’éditeur SQL du projet Supabase métier, dans cet ordre, et seulement après les avoir relues :</p>
+      <ol>
+        <li><code>supabase/schema.sql</code> si les tables métier ne sont pas encore là ;</li>
+        <li><code>supabase/migrations/000_mbeukcv_hub_cache.sql</code> ;</li>
+        <li><code>001_hub_integration.sql</code> ;</li>
+        <li><code>002_hub_identity_clarification.sql</code> ;</li>
+        <li><code>003_licenses_access_type_compat.sql</code> ;</li>
+        <li><code>004_lockdown_entitlement_rls.sql</code>.</li>
+      </ol>
+      <p>Le workflow ne lance pas ces fichiers. Le verrouillage par ligne fait qu’un client connecté ne lit que ses lignes. Le rôle service reste sur le serveur.</p>
+    </section>
+
+    <section>
+      <p class="step">Étape J</p>
+      <h2>Vérifier après une publication verte</h2>
+      <ol>
+        <li>L’adresse Vercel ouvre la page Compte.</li>
+        <li>Créer un compte Hub sans licence ne crée pas encore l’espace, et propose l’achat.</li>
+        <li>Dans Supabase, Edge Functions, les fonctions <code>hub-auth-login</code> et <code>hub-auth-register</code> sont présentes.</li>
+        <li>Dans Supabase, Edge Function Secrets, les noms <code>MBEUK_HUB_API_KEY</code> et <code>MBEUK_AUTH_BRIDGE_SECRET</code> existent. N’ouvrez pas les valeurs dans un ticket.</li>
+        <li>Une collecte d’offres sans le secret de cron répond 401.</li>
+      </ol>
+      <p>Ce workflow n’attaque pas la base et ne remplace pas un audit humain. Il empêche de publier un dépôt qui expose une clé, qui oublie un secret obligatoire, ou qui retire les garde-fous déjà écrits.</p>
+    </section>
+  </main>
+</body>
+</html>

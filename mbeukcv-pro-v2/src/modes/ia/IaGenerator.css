@@ -1,0 +1,409 @@
+.generator-page {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* ── Topbar : badge crédits + toggle BYOK ── */
+.generator-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.generator-topbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.credits-badge-dot,
+.local-badge .credits-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.local-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: white;
+  border: 1px solid var(--border);
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--ink);
+}
+
+.byok-toggle {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: white;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.byok-toggle:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+/* ── Panneau BYOK ── */
+.byok-panel {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+.byok-panel-desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.byok-input-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.byok-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 11px 14px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  outline: none;
+}
+.byok-input:focus {
+  border-color: var(--blue);
+}
+.byok-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+  font-family: 'Courier New', monospace;
+  background: #f8f8f8;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+.byok-clear-btn {
+  border: 1px solid var(--border);
+  background: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--error);
+  cursor: pointer;
+}
+.byok-clear-btn:hover {
+  background: #fff0f0;
+}
+.byok-error {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--error);
+}
+
+/* ── Grille principale : formulaire | résultat ── */
+.generator-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 440px) 1fr;
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .generator-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.generator-form {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 26px;
+  position: sticky;
+  top: 20px;
+}
+@media (max-width: 980px) {
+  .generator-form {
+    position: static;
+  }
+}
+
+.generator-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.generator-subtitle {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.gen-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 16px 0 6px;
+}
+.gen-textarea,
+.gen-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink);
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+.gen-textarea:focus,
+.gen-select:focus {
+  border-color: var(--blue);
+}
+.gen-textarea:disabled,
+.gen-select:disabled {
+  background: #f6f5f2;
+  opacity: 0.7;
+}
+
+.gen-row {
+  display: flex;
+  gap: 14px;
+  margin-top: 4px;
+}
+.gen-col {
+  flex: 1;
+}
+
+.gen-error {
+  margin-top: 16px;
+  padding: 11px 14px;
+  background: #fff0f0;
+  color: var(--error);
+  border: 1px solid rgba(200, 68, 14, 0.2);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.gen-submit-btn {
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* ── Historique des CV (Prompt 6) ── */
+.cv-history-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.history-toggle-btn,
+.history-new-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: white;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.history-toggle-btn:hover,
+.history-new-btn:hover {
+  border-color: var(--ink);
+}
+.history-new-btn {
+  background: linear-gradient(135deg, var(--ink) 0%, var(--blue) 100%);
+  color: white;
+  border: none;
+}
+
+.cv-history-panel {
+  background: #f8f8f6;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 20px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.cv-history-empty {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  padding: 12px;
+}
+
+.cv-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+}
+.cv-history-item:last-child {
+  margin-bottom: 0;
+}
+.cv-history-item-active {
+  border-color: var(--gold);
+  background: #fffdf5;
+}
+
+.cv-history-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.cv-history-item-info strong {
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cv-history-item-date {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.cv-history-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.cv-history-item-actions button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: white;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+}
+.cv-history-item-actions button:hover {
+  background: #f6f5f2;
+}
+.cv-history-delete-btn {
+  color: var(--error) !important;
+}
+.cv-history-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cv-save-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.cv-save-message {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* ── Résultat / placeholder ── */
+.generator-result {
+  min-height: 400px;
+}
+.generator-placeholder {
+  height: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: white;
+  border: 1.5px dashed var(--border);
+  border-radius: 16px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 40px;
+}
+.placeholder-icon {
+  font-size: 2.4rem;
+}
+.ui-spinner-lg {
+  width: 30px;
+  height: 30px;
+  border-width: 3px;
+  border-color: rgba(10, 10, 15, 0.15);
+  border-top-color: var(--blue);
+}
+
+/* ── Handoff Claude.ai ── */
+.handoff-divider {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 14px 0 10px;
+  position: relative;
+}
+.handoff-divider::before,
+.handoff-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 30%;
+  height: 1px;
+  background: var(--border);
+}
+.handoff-divider::before {
+  left: 0;
+}
+.handoff-divider::after {
+  right: 0;
+}
+
+.handoff-message {
+  margin-top: 12px;
+  padding: 11px 14px;
+  background: #f0f4ff;
+  color: var(--blue);
+  border: 1px solid rgba(26, 58, 92, 0.15);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}

@@ -1,0 +1,241 @@
+name: Déploiement sécurisé
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mbeukcv-production
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: mbeukcv-saas
+
+jobs:
+  verify:
+    name: Contrôles de sécurité
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mbeukcv-saas/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Barrière secrets, RLS, en-têtes et dépendances
+        run: npm run security
+
+      - name: Tests métier
+        run: npm test
+
+      - name: Build de vérification
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.verification
+
+  deploy:
+    name: Supabase puis Vercel
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mbeukcv-saas/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier que les secrets GitHub sont complets
+        run: node scripts/ci/require-secrets.mjs
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          MBEUK_HUB_URL: ${{ secrets.MBEUK_HUB_URL }}
+          MBEUK_HUB_API_KEY: ${{ secrets.MBEUK_HUB_API_KEY }}
+          MBEUK_PRODUCT_ID: ${{ secrets.MBEUK_PRODUCT_ID }}
+          MBEUK_APPLICATION_ID: ${{ secrets.MBEUK_APPLICATION_ID }}
+          MBEUK_AUTH_BRIDGE_SECRET: ${{ secrets.MBEUK_AUTH_BRIDGE_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_FROM_EMAIL: ${{ secrets.BREVO_FROM_EMAIL }}
+          BREVO_FROM_NAME: ${{ secrets.BREVO_FROM_NAME }}
+          CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+          CREDIT_GRANT_SECRET: ${{ secrets.CREDIT_GRANT_SECRET }}
+          MBEUK_HUB_BASE_URL: ${{ secrets.MBEUK_HUB_BASE_URL }}
+          MBEUK_ENVIRONMENT: production
+          MBEUK_HUB_PRODUCT_CLAUDE_10: ${{ secrets.MBEUK_HUB_PRODUCT_CLAUDE_10 }}
+          MBEUK_HUB_PRODUCT_CLAUDE_30: ${{ secrets.MBEUK_HUB_PRODUCT_CLAUDE_30 }}
+          MBEUK_HUB_PRODUCT_CLAUDE_80: ${{ secrets.MBEUK_HUB_PRODUCT_CLAUDE_80 }}
+
+      - name: CLI Supabase
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+
+      - name: Déposer les secrets Edge
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          MBEUK_HUB_URL: ${{ secrets.MBEUK_HUB_URL }}
+          MBEUK_HUB_API_KEY: ${{ secrets.MBEUK_HUB_API_KEY }}
+          MBEUK_PRODUCT_ID: ${{ secrets.MBEUK_PRODUCT_ID }}
+          MBEUK_APPLICATION_ID: ${{ secrets.MBEUK_APPLICATION_ID }}
+          MBEUK_AUTH_BRIDGE_SECRET: ${{ secrets.MBEUK_AUTH_BRIDGE_SECRET }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MBEUK_ENVIRONMENT: production
+        run: |
+          set -euo pipefail
+          umask 077
+          tmp="$(mktemp)"
+          node scripts/ci/write-supabase-env.mjs "$tmp"
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_REF" --env-file "$tmp"
+          rm -f "$tmp"
+
+      - name: Déployer les Edge Functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          rm -rf supabase/functions
+          mkdir -p supabase/functions
+          cp -a supabase/edge-functions/. supabase/functions/
+          supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Secrets et fonctions Edge de MbeukCV Pro
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PRO_PROJECT_REF: ${{ secrets.SUPABASE_PRO_PROJECT_REF }}
+          COLLECT_KEYS_KEY: ${{ secrets.COLLECT_KEYS_KEY }}
+          MASTER_CLAUDE_KEY: ${{ secrets.MASTER_CLAUDE_KEY }}
+          SCRAPE_CRON_SECRET: ${{ secrets.SCRAPE_CRON_SECRET }}
+          JSEARCH_API_KEY: ${{ secrets.JSEARCH_API_KEY }}
+          PRO_BREVO_API_KEY: ${{ secrets.PRO_BREVO_API_KEY }}
+          PRO_BREVO_FROM_EMAIL: ${{ secrets.PRO_BREVO_FROM_EMAIL }}
+          AFRICAWORK_API_URL: ${{ secrets.AFRICAWORK_API_URL }}
+          AFRICAWORK_API_KEY: ${{ secrets.AFRICAWORK_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_PRO_PROJECT_REF}" ]; then
+            echo "SUPABASE_PRO_PROJECT_REF absent. Fonctions Pro non déployées."
+            exit 0
+          fi
+          if [ -d mbeukcv-pro-v2 ]; then cd mbeukcv-pro-v2
+          elif [ -d ../mbeukcv-pro-v2 ]; then cd ../mbeukcv-pro-v2
+          else
+            echo "BLOQUÉ — mbeukcv-pro-v2 est introuvable."
+            exit 1
+          fi
+          umask 077
+          tmp="$(mktemp)"
+          add() { if [ -n "${2:-}" ]; then printf '%s=%s\n' "$1" "$2" >> "$tmp"; fi; }
+          add COLLECT_KEYS_KEY "$COLLECT_KEYS_KEY"
+          add MASTER_CLAUDE_KEY "$MASTER_CLAUDE_KEY"
+          add SCRAPE_CRON_SECRET "$SCRAPE_CRON_SECRET"
+          add JSEARCH_API_KEY "$JSEARCH_API_KEY"
+          add BREVO_API_KEY "$PRO_BREVO_API_KEY"
+          add BREVO_FROM_EMAIL "$PRO_BREVO_FROM_EMAIL"
+          add AFRICAWORK_API_URL "$AFRICAWORK_API_URL"
+          add AFRICAWORK_API_KEY "$AFRICAWORK_API_KEY"
+          if [ -s "$tmp" ]; then
+            supabase secrets set --project-ref "$SUPABASE_PRO_PROJECT_REF" --env-file "$tmp"
+          fi
+          rm -f "$tmp"
+          supabase functions deploy --project-ref "$SUPABASE_PRO_PROJECT_REF"
+
+      - name: Construire MbeukCV Pro dans le site
+        run: |
+          set -euo pipefail
+          if [ -f mbeukcv-pro-v2/package.json ]; then
+            PRO=mbeukcv-pro-v2
+            PUBLIC=mbeukcv-saas/public/pro
+          elif [ -f ../mbeukcv-pro-v2/package.json ]; then
+            PRO=../mbeukcv-pro-v2
+            PUBLIC=public/pro
+          else
+            echo "BLOQUÉ — mbeukcv-pro-v2 est introuvable. La racine du dépôt doit contenir mbeukcv-saas et mbeukcv-pro-v2."
+            exit 1
+          fi
+          npm ci --prefix "$PRO"
+          npm test --prefix "$PRO"
+          VITE_BASE=/pro/ npm run build --prefix "$PRO"
+          rm -rf "$PUBLIC"
+          mkdir -p "$PUBLIC"
+          cp -a "$PRO/dist/." "$PUBLIC/"
+
+      - name: Déposer les variables Vercel
+        run: node scripts/ci/push-vercel-env.mjs
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          MBEUK_HUB_URL: ${{ secrets.MBEUK_HUB_URL }}
+          MBEUK_HUB_API_KEY: ${{ secrets.MBEUK_HUB_API_KEY }}
+          MBEUK_PRODUCT_ID: ${{ secrets.MBEUK_PRODUCT_ID }}
+          MBEUK_APPLICATION_ID: ${{ secrets.MBEUK_APPLICATION_ID }}
+          MBEUK_AUTH_BRIDGE_SECRET: ${{ secrets.MBEUK_AUTH_BRIDGE_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_FROM_EMAIL: ${{ secrets.BREVO_FROM_EMAIL }}
+          BREVO_FROM_NAME: ${{ secrets.BREVO_FROM_NAME }}
+          CONTACT_EMAIL: ${{ secrets.CONTACT_EMAIL }}
+          CREDIT_GRANT_SECRET: ${{ secrets.CREDIT_GRANT_SECRET }}
+          MBEUK_HUB_BASE_URL: ${{ secrets.MBEUK_HUB_BASE_URL }}
+          MBEUK_ENVIRONMENT: production
+          MBEUK_HUB_PRODUCT_CLAUDE_10: ${{ secrets.MBEUK_HUB_PRODUCT_CLAUDE_10 }}
+          MBEUK_HUB_PRODUCT_CLAUDE_30: ${{ secrets.MBEUK_HUB_PRODUCT_CLAUDE_30 }}
+          MBEUK_HUB_PRODUCT_CLAUDE_80: ${{ secrets.MBEUK_HUB_PRODUCT_CLAUDE_80 }}
+
+      - name: Publier la production Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes vercel@60.1.3 pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx --yes vercel@60.1.3 build --prod --token="$VERCEL_TOKEN"
+          npx --yes vercel@60.1.3 deploy --prebuilt --prod --token="$VERCEL_TOKEN"

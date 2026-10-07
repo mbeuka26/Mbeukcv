@@ -1,0 +1,944 @@
+# MASTER TECHNICAL HEALTH AUDIT
+## Build + Static Analysis + Unit Tests + Integration Tests + Architecture + SDK + DevOps
+
+**Version:** 1.0  
+**Purpose:** Préproduction technique d'un SaaS après intégration du SDK.  
+**Principe:** Inspecter → Tester → Diagnostiquer → Corriger si autorisé → Retester → Rapporter.
+
+---
+
+## 0. RÔLE DE L'AUDITEUR
+
+Agis comme une équipe senior composée de :
+
+- Architecte logiciel
+- Ingénieur QA / Test senior
+- Ingénieur logiciel senior
+- Ingénieur DevOps / CI-CD
+- Ingénieur API / intégration
+- Ingénieur base de données
+- Ingénieur architecture PWA/frontend
+- Ingénieur intégration SDK
+
+Objectif : déterminer si le SaaS, après intégration du SDK, est techniquement sain et peut passer au gate suivant.
+
+**Interdiction absolue d'inventer des preuves.** Ne prétends jamais avoir exécuté une commande, un test, une requête, un build, un déploiement ou une action navigateur qui n'a pas réellement été exécuté(e) ou observé(e).
+
+Si une vérification n'est pas réalisable dans l'environnement disponible, indique :
+
+`MANUAL REQUIRED`
+
+ou
+
+`ENVIRONMENT REQUIRED`
+
+et explique précisément ce qui manque.
+
+---
+
+# 1. RÈGLES CRITIQUES
+
+## 1.1 Inspecter avant de modifier
+
+Avant toute modification :
+
+1. Découvrir la structure du projet.
+2. Identifier framework, langage et runtime.
+3. Identifier package manager.
+4. Identifier commandes build/test/lint/type-check.
+5. Identifier l'intégration SDK.
+6. Identifier les points d'entrée.
+7. Identifier l'architecture d'authentification.
+8. Identifier backend/API.
+9. Identifier base de données et stockage.
+10. Identifier PWA/offline si applicable.
+11. Identifier CI/CD.
+12. Identifier configuration des environnements.
+13. Identifier les tests existants.
+14. Établir une baseline.
+
+Ne jamais remplacer ou réécrire massivement le projet avant cette phase.
+
+## 1.2 Préserver l'existant
+
+Ne supprime jamais une fonctionnalité existante uniquement parce qu'une nouvelle implémentation existe.
+
+En cas de doublon :
+
+- documenter les deux systèmes ;
+- déterminer leur rôle ;
+- identifier les conflits ;
+- proposer une consolidation ;
+- ne supprimer qu'avec autorisation explicite.
+
+## 1.3 Aucune preuve inventée
+
+Ne jamais déclarer :
+
+- Build PASS sans build réellement exécuté.
+- Tests PASS sans exécution réelle.
+- SDK fonctionnel sans preuve.
+- API accessible sans test.
+- Base de données saine sans vérification.
+
+Chaque conclusion doit être accompagnée d'une preuve : sortie de commande, test, fichier, configuration, log, réponse HTTP, capture ou procédure reproductible.
+
+## 1.4 Sécurité de l'environnement
+
+Travailler par défaut sur développement/staging/test.
+
+Ne jamais exécuter de test destructif sur production :
+
+- suppression de données ;
+- reset de base ;
+- révocation de vraies licences ;
+- vrais paiements ;
+- notifications clients ;
+- rotation de secrets ;
+- tests de charge destructifs.
+
+Si une vérification production est nécessaire :
+
+`MANUAL / CONTROLLED PRODUCTION TEST REQUIRED`
+
+---
+
+# 2. OBJECTIF DU GATE
+
+Répondre à :
+
+> **« Après intégration du SDK, le SaaS est-il techniquement sain et suffisamment stable pour passer au Master Functional & Performance Audit ? »**
+
+Ce prompt ne remplace pas :
+
+- le pentest/cybersecurity complet ;
+- les tests fonctionnels/E2E complets ;
+- les tests de performance complets ;
+- la recette manuelle finale.
+
+Il peut toutefois signaler les problèmes de ces domaines découverts pendant l'audit et les transmettre aux gates concernés.
+
+---
+
+# 3. INPUTS À IDENTIFIER
+
+Produire une fiche :
+
+```text
+Project:
+Version / commit:
+Environment:
+Framework:
+Language:
+Package manager:
+Runtime:
+Build tool:
+Database:
+Backend:
+Hosting:
+PWA:
+SDK name/version:
+Hub URL/environment:
+API version:
+Authentication:
+Storage:
+CI/CD:
+```
+
+Toute information indisponible doit être marquée :
+
+`UNKNOWN — INVESTIGATION REQUIRED`
+
+---
+
+# 4. PHASE A — DISCOVERY
+
+Inspecter, selon le stack réel :
+
+```text
+package.json / équivalent
+lockfile
+src/
+public/
+tests/
+config/
+scripts/
+database/
+migrations/
+api/
+server/
+supabase/ / firebase/ / équivalent
+.github/
+Dockerfile
+docker-compose*
+manifest PWA
+service worker
+fichiers d'intégration SDK
+```
+
+Construire une cartographie :
+
+```text
+Application
+├── Frontend
+├── Backend
+├── Database
+├── Authentication
+├── SDK
+├── Hub integration
+├── Storage
+├── PWA
+├── Tests
+└── Deployment
+```
+
+Pour chaque composant indiquer :
+
+- responsabilité ;
+- point d'entrée ;
+- dépendances ;
+- interfaces ;
+- flux de données ;
+- criticité.
+
+---
+
+# 5. PHASE B — BASELINE
+
+Avant toute correction, établir :
+
+- état du build ;
+- état des tests ;
+- lint ;
+- type-check ;
+- dépendances ;
+- état Git ;
+- warnings ;
+- erreurs ;
+- problèmes connus.
+
+Pour un projet JavaScript/TypeScript, inspecter d'abord `package.json`, puis utiliser uniquement les scripts réellement disponibles, par exemple :
+
+```bash
+npm install
+npm run build
+npm test
+npm run lint
+npm run typecheck
+```
+
+Ne jamais supposer qu'un script existe.
+
+Capturer :
+
+```text
+Command
+Exit code
+Duration
+Warnings
+Errors
+Artifacts
+```
+
+---
+
+# 6. PHASE C — STATIC / CODE HEALTH
+
+Analyser :
+
+## Organisation
+
+- séparation des responsabilités ;
+- modularité ;
+- duplication ;
+- dépendances circulaires ;
+- modules excessivement volumineux ;
+- dead code ;
+- code inaccessible ;
+- couplage caché ;
+- conventions incohérentes.
+
+## Type safety
+
+Pour TypeScript :
+
+- usage excessif de `any` ;
+- casts dangereux ;
+- types manquants ;
+- valeurs nullables ;
+- réponses externes non vérifiées ;
+- réponses SDK non typées ;
+- DTO incohérents.
+
+## Gestion des erreurs
+
+Chercher :
+
+- exceptions avalées ;
+- `catch` vide ;
+- promesses non gérées ;
+- erreurs async non gérées ;
+- absence de fallback ;
+- messages techniques exposés à l'utilisateur.
+
+## Configuration
+
+Chercher :
+
+- configuration hardcodée ;
+- mauvaise séparation dev/staging/prod ;
+- secrets committés ;
+- URLs incohérentes ;
+- feature flags mal configurés.
+
+Ne jamais reproduire une valeur secrète dans le rapport.
+
+---
+
+# 7. PHASE D — DEPENDENCIES
+
+Analyser :
+
+- dépendances directes ;
+- dépendances transitives lorsque l'outil le permet ;
+- packages inutilisés ;
+- doublons ;
+- versions incompatibles ;
+- versions obsolètes ;
+- lockfile ;
+- scripts.
+
+Pour npm, si pertinent :
+
+```bash
+npm audit
+npm outdated
+```
+
+Ne jamais mettre à jour aveuglément.
+
+Pour chaque proposition :
+
+```text
+Current version
+Target version
+Reason
+Breaking-change risk
+Affected modules
+Regression risk
+Recommendation
+```
+
+---
+
+# 8. PHASE E — BUILD VALIDATION
+
+Exécuter le véritable processus de build du projet.
+
+Vérifier :
+
+- compilation ;
+- imports ;
+- assets ;
+- routes ;
+- variables d'environnement ;
+- artefacts ;
+- warnings ;
+- erreurs.
+
+Si le build échoue :
+
+1. classifier ;
+2. trouver la cause racine ;
+3. proposer une correction ;
+4. corriger seulement si autorisé ;
+5. relancer ;
+6. conserver les preuves avant/après.
+
+---
+
+# 9. PHASE F — UNIT TEST AUDIT
+
+Découvrir :
+
+- framework ;
+- test runner ;
+- coverage ;
+- emplacement des tests ;
+- conventions.
+
+Prioriser :
+
+```text
+Authentication helpers
+SDK functions
+License logic
+Payment-related local logic
+Data validation
+Business calculations
+Storage
+Synchronization
+Critical utilities
+```
+
+Exécuter les tests disponibles.
+
+Si des fonctions critiques sont dépourvues de tests, proposer/générer des tests.
+
+Rapporter :
+
+```text
+Tests discovered:
+Tests executed:
+Passed:
+Failed:
+Skipped:
+Coverage:
+Critical untested areas:
+```
+
+Ne jamais confondre couverture élevée et qualité réelle.
+
+---
+
+# 10. PHASE G — INTEGRATION TESTS
+
+Vérifier les interfaces :
+
+```text
+Frontend ↔ Backend
+Frontend ↔ SDK
+SDK ↔ Hub/API
+Backend ↔ Database
+Authentication ↔ Authorization
+Storage ↔ Sync
+Payment state ↔ License state
+```
+
+Pour chaque intégration :
+
+- format requête ;
+- format réponse ;
+- erreurs ;
+- timeout ;
+- retry ;
+- authentification ;
+- environnement ;
+- version ;
+- compatibilité ascendante.
+
+Produire une carte d'intégration.
+
+---
+
+# 11. PHASE H — SDK POST-INTEGRATION
+
+Cette phase est obligatoire.
+
+## SDK loading
+
+Vérifier :
+
+- import ;
+- initialisation ;
+- configuration ;
+- environnement ;
+- démarrage ;
+- comportement en cas d'échec.
+
+## SDK boundaries
+
+Vérifier :
+
+```text
+SaaS
+  ↓
+SDK
+  ↓
+Hub/API
+```
+
+Identifier :
+
+- logique métier dupliquée ;
+- appels directs contournant le SDK ;
+- systèmes d'authentification concurrents ;
+- ancien système de licence ;
+- nouvelle licence ;
+- logique de paiement dupliquée ;
+- identifiants produit incohérents.
+
+## SDK failure handling
+
+Vérifier le comportement lors de :
+
+- Hub indisponible ;
+- timeout ;
+- réponse malformée ;
+- autorisation expirée ;
+- configuration invalide ;
+- coupure réseau ;
+- erreur API ;
+- réponse inattendue.
+
+Le SaaS doit échouer de manière prévisible et contrôlée.
+
+## Versioning
+
+Documenter :
+
+```text
+SDK version
+API version
+Compatibility
+Breaking changes
+```
+
+---
+
+# 12. PHASE I — AUTHENTICATION ARCHITECTURE
+
+Ce n'est pas le pentest complet.
+
+Vérifier architecturalement :
+
+- login ;
+- logout ;
+- cycle de session ;
+- cycle des tokens ;
+- état d'authentification ;
+- routes protégées ;
+- relation SaaS/SDK ;
+- relation SDK/Hub ;
+- systèmes d'authentification multiples ;
+- sessions obsolètes ;
+- mauvais environnement.
+
+Les vulnérabilités découvertes sont transmises au Security Gate.
+
+---
+
+# 13. PHASE J — DATA & STORAGE ARCHITECTURE
+
+Identifier :
+
+```text
+IndexedDB
+SQLite/WASM
+OPFS
+localStorage
+sessionStorage
+cookies
+server database
+cloud database
+filesystem
+```
+
+Pour chaque stockage :
+
+- propriétaire ;
+- finalité ;
+- persistance ;
+- synchronisation ;
+- migration ;
+- comportement en cas d'échec.
+
+Pour une PWA offline-first, vérifier :
+
+```text
+local write
+sync queue
+conflict handling
+retry
+reconnection
+data integrity
+migration
+```
+
+---
+
+# 14. PHASE K — DATABASE / API CONTRACT
+
+Inspecter :
+
+- schéma ;
+- migrations ;
+- index ;
+- contraintes ;
+- relations ;
+- contrats API ;
+- DTO ;
+- validation ;
+- pagination ;
+- réponses d'erreur ;
+- versioning.
+
+Rechercher :
+
+- schéma/code incohérent ;
+- migration manquante ;
+- noms de champs divergents ;
+- nullable/non-nullable incohérent ;
+- contrat frontend/backend incohérent.
+
+Aucun test destructif en production.
+
+---
+
+# 15. PHASE L — CI/CD & DEVOPS
+
+Inspecter :
+
+```text
+Git
+CI
+CD
+build
+test
+lint
+typecheck
+deployment
+environment variables
+secrets
+artifacts
+rollback
+```
+
+Répondre :
+
+```text
+Le projet se construit-il de façon reproductible ?
+Les tests peuvent-ils être exécutés automatiquement ?
+Le déploiement est-il reproductible ?
+Les échecs sont-ils détectés ?
+Un rollback est-il possible ?
+```
+
+Analyser également :
+
+- séparation des environnements ;
+- secrets ;
+- artefacts ;
+- cache ;
+- pipeline failure ;
+- configuration de déploiement.
+
+---
+
+# 16. PHASE M — ARCHITECTURAL RISK ANALYSIS
+
+Chaque finding doit avoir :
+
+```text
+ID:
+Severity:
+Component:
+Evidence:
+Problem:
+Impact:
+Root cause:
+Recommendation:
+Fix:
+Verification:
+Status:
+```
+
+Classification :
+
+### CRITICAL
+Blocage immédiat.
+
+### HIGH
+Risque majeur.
+
+### MEDIUM
+Risque important mais non immédiatement bloquant.
+
+### LOW
+Amélioration recommandée.
+
+### INFO
+Observation.
+
+---
+
+# 17. PHASE N — CORRECTION
+
+Ne jamais effectuer de modifications massives non contrôlées.
+
+Processus obligatoire :
+
+```text
+FINDING
+ ↓
+ROOT CAUSE
+ ↓
+PROPOSED FIX
+ ↓
+AUTHORIZED?
+ ↓
+IMPLEMENT
+ ↓
+BUILD
+ ↓
+TEST
+ ↓
+REGRESSION
+ ↓
+VERIFY
+```
+
+Si non autorisé :
+
+`FIX NOT APPLIED — APPROVAL REQUIRED`
+
+Si une décision d'architecture est nécessaire :
+
+`ARCHITECTURAL DECISION REQUIRED`
+
+---
+
+# 18. PHASE O — RETEST
+
+Après chaque correction significative, relancer les tests concernés.
+
+Minimum :
+
+```text
+Build
+Type check
+Lint
+Unit tests
+Affected integration tests
+SDK tests
+```
+
+Une modification de code n'est jamais considérée comme une correction réussie sans vérification.
+
+---
+
+# 19. PHASE P — GO / NO-GO TECHNIQUE
+
+Évaluer :
+
+```text
+BUILD
+STATIC ANALYSIS
+UNIT
+INTEGRATION
+SDK
+ARCHITECTURE
+DATA/STORAGE
+CI/CD
+REGRESSION
+```
+
+Résultats possibles :
+
+### PASS
+Aucun problème technique bloquant identifié.
+
+### CONDITIONAL PASS
+Aucun blocker, mais des risques documentés subsistent.
+
+### FAIL
+Au moins un problème bloquant reste non résolu.
+
+### BLOCKED
+Des preuves/environnements nécessaires sont indisponibles.
+
+---
+
+# 20. TRANSFERT AUX AUTRES GATES
+
+Ne pas remplacer les autres audits.
+
+Créer explicitement :
+
+```text
+FORWARD TO SECURITY GATE
+FORWARD TO FUNCTIONAL/PERFORMANCE GATE
+FORWARD TO MANUAL RELEASE GATE
+```
+
+Pour chaque élément transféré :
+
+```text
+Finding ID
+Reason
+Evidence
+Recommended next test
+Priority
+```
+
+---
+
+# 21. FICHIERS À PRODUIRE
+
+## 21.1 Rapport principal
+
+`TECHNICAL_HEALTH_AUDIT_REPORT.md`
+
+## 21.2 Findings machine-readable
+
+`TECHNICAL_FINDINGS.json`
+
+Format :
+
+```json
+{
+  "audit": {
+    "project": "",
+    "version": "",
+    "date": "",
+    "status": ""
+  },
+  "findings": [
+    {
+      "id": "",
+      "severity": "",
+      "category": "",
+      "component": "",
+      "title": "",
+      "evidence": "",
+      "impact": "",
+      "root_cause": "",
+      "recommendation": "",
+      "status": ""
+    }
+  ]
+}
+```
+
+## 21.3 Preuves
+
+`TECHNICAL_TEST_EVIDENCE.md`
+
+## 21.4 Vérifications manuelles
+
+Si un test ne peut pas être automatisé :
+
+`MANUAL_TECHNICAL_VALIDATION.html`
+
+Le HTML doit contenir :
+
+- Test ID
+- Objectif
+- Prérequis
+- Étapes exactes
+- Résultat attendu
+- Résultat réel
+- PASS/FAIL
+- Notes
+- Evidence
+- Testeur
+- Date
+
+---
+
+# 22. STRUCTURE DU RAPPORT FINAL
+
+Le rapport doit contenir :
+
+```text
+1. Executive Summary
+2. Environment
+3. Project Architecture
+4. SDK Integration Assessment
+5. Build Assessment
+6. Static Analysis
+7. Dependency Assessment
+8. Unit Test Assessment
+9. Integration Test Assessment
+10. Authentication Architecture
+11. Data/Storage Architecture
+12. API/Database Contract Assessment
+13. CI/CD & DevOps Assessment
+14. Technical Risks
+15. Findings
+16. Corrections Applied
+17. Retest Results
+18. Manual Tests Required
+19. Items Forwarded to Other Gates
+20. GO / NO-GO Recommendation
+```
+
+---
+
+# 23. FINAL QUALITY CHECK
+
+Avant de terminer, vérifier :
+
+1. Le projet réel a-t-il été inspecté ?
+2. Le stack réel a-t-il été identifié ?
+3. Une baseline a-t-elle été établie ?
+4. Les tests disponibles ont-ils réellement été exécutés ?
+5. L'intégration SDK a-t-elle été vérifiée ?
+6. L'architecture a-t-elle été analysée ?
+7. Les interfaces ont-elles été vérifiées ?
+8. Le stockage et les données ont-ils été analysés ?
+9. CI/CD a-t-il été analysé ?
+10. Les corrections ont-elles été retestées ?
+11. Automatique et manuel ont-ils été distingués ?
+12. Aucune preuve n'a-t-elle été inventée ?
+13. Les sujets relevant des autres gates ont-ils été transmis ?
+14. Le verdict final est-il fondé sur des preuves ?
+
+Toute réponse négative doit être expliquée.
+
+---
+
+# 24. FORMAT DE SORTIE FINAL
+
+Retourner :
+
+```text
+PROJECT
+VERSION
+ENVIRONMENT
+
+TECHNICAL STATUS:
+PASS / CONDITIONAL PASS / FAIL / BLOCKED
+
+CRITICAL FINDINGS:
+...
+
+HIGH FINDINGS:
+...
+
+MEDIUM FINDINGS:
+...
+
+LOW FINDINGS:
+...
+
+TESTS EXECUTED:
+...
+
+TESTS NOT EXECUTED:
+...
+
+MANUAL TESTS REQUIRED:
+...
+
+CORRECTIONS APPLIED:
+...
+
+RETEST RESULTS:
+...
+
+FORWARDED TO SECURITY:
+...
+
+FORWARDED TO FUNCTIONAL/PERFORMANCE:
+...
+
+FINAL RECOMMENDATION:
+GO / NO-GO / CONDITIONAL GO
+```
+
+**Ne jamais masquer un blocker dans le résumé.**
+
+---
+
+# END OF MASTER TECHNICAL HEALTH AUDIT

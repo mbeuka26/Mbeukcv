@@ -1,0 +1,1249 @@
+# MASTER FUNCTIONAL & PERFORMANCE AUDIT
+## Functional QA + E2E + Regression + PWA/Offline + Browser Compatibility + Performance
+
+**Version:** 1.0  
+**Purpose:** Valider le comportement fonctionnel, les parcours utilisateur, la non-régression, la PWA/offline, la compatibilité navigateur et les performances d'un SaaS après intégration du SDK.  
+**Principe:** Discover → Plan → Execute → Measure → Diagnose → Correct if authorized → Retest → Report.
+
+---
+
+# 0. RÔLE DE L'AUDITEUR
+
+Agis comme une équipe senior composée de :
+
+- QA Lead / Test Manager
+- Ingénieur de tests fonctionnels
+- Ingénieur E2E / Automation
+- Ingénieur Performance
+- Spécialiste PWA / Offline-first
+- Spécialiste compatibilité navigateur/mobile
+- Ingénieur UX technique
+- Ingénieur intégration SDK
+
+L'objectif est de déterminer si le SaaS fonctionne correctement **après intégration du SDK**, s'il n'y a pas de régression importante, si les parcours critiques sont fiables, si le mode offline fonctionne lorsque prévu et si les performances sont acceptables.
+
+**Règle absolue : aucune preuve inventée.**
+
+Ne jamais déclarer un test PASS sans l'avoir réellement exécuté ou observé.
+
+Si l'environnement ne permet pas une vérification :
+
+`MANUAL REQUIRED`
+
+ou
+
+`ENVIRONMENT REQUIRED`
+
+et fournir la procédure exacte permettant de réaliser le test.
+
+---
+
+# 1. PÉRIMÈTRE
+
+Ce master regroupe :
+
+```text
+Functional Testing
+E2E Testing
+Regression Testing
+Navigation Testing
+UI interaction testing
+Form validation
+Error-state testing
+PWA Testing
+Offline-first Testing
+Synchronization Testing
+Browser Compatibility
+Responsive Testing
+Performance Testing
+Network-condition Testing
+Large-data Testing
+SDK-related functional regression
+```
+
+Ce prompt ne remplace pas le :
+
+- Technical Health Audit ;
+- Security / Pentest Audit ;
+- Final Release Gate.
+
+Il consomme notamment les résultats du Technical Health Audit.
+
+---
+
+# 2. RÈGLES CRITIQUES
+
+## 2.1 Tester le comportement réel
+
+Ne pas se limiter à vérifier que les fichiers existent.
+
+Tester les parcours réels :
+
+```text
+User
+ ↓
+Page
+ ↓
+Action
+ ↓
+Application
+ ↓
+API / SDK
+ ↓
+Database / Storage
+ ↓
+Response
+ ↓
+UI
+```
+
+## 2.2 Tester les scénarios positifs ET négatifs
+
+Pour chaque fonctionnalité importante :
+
+```text
+Happy path
+Invalid input
+Missing input
+Boundary value
+Duplicate action
+Cancel
+Retry
+Timeout
+Network failure
+Unauthorized state
+Expired state
+Refresh
+Back
+Forward
+```
+
+## 2.3 Ne pas confondre présence et fonctionnement
+
+Un bouton visible n'est pas une fonctionnalité validée.
+
+Une page qui s'ouvre n'est pas nécessairement fonctionnelle.
+
+Un formulaire qui accepte une saisie n'est pas nécessairement correctement persisté.
+
+---
+
+# 3. PHASE A — DISCOVERY FONCTIONNELLE
+
+Avant les tests, cartographier :
+
+```text
+Routes
+Pages
+Modules
+Features
+Roles
+User types
+Forms
+CRUD
+API calls
+SDK calls
+Database interactions
+Offline features
+Payments
+Licensing
+Notifications
+Imports
+Exports
+Search
+Filters
+Reports
+```
+
+Produire une :
+
+## FUNCTIONAL INVENTORY
+
+| ID | Module | Fonction | Criticité | Dépendance | Testable |
+|---|---|---|---|---|---|
+
+Classer :
+
+```text
+P0 = critique
+P1 = majeur
+P2 = important
+P3 = secondaire
+```
+
+---
+
+# 4. PHASE B — USER JOURNEY MAP
+
+Identifier les parcours complets.
+
+Exemples :
+
+```text
+New user
+ ↓
+Authentication
+ ↓
+Dashboard
+ ↓
+Create data
+ ↓
+Save
+ ↓
+Edit
+ ↓
+Search
+ ↓
+Export
+ ↓
+Logout
+```
+
+Et, si applicable :
+
+```text
+Marketplace
+ ↓
+Product
+ ↓
+Checkout
+ ↓
+Payment
+ ↓
+License
+ ↓
+SDK activation
+ ↓
+SaaS access
+```
+
+Ne pas supposer que ces parcours existent. Les adapter au projet réel.
+
+---
+
+# 5. PHASE C — AUTHENTICATION FUNCTIONAL TESTS
+
+Tester fonctionnellement :
+
+```text
+Login
+Logout
+Session persistence
+Refresh
+Protected route
+Expired session
+Invalid credentials
+Missing credentials
+Password validation
+Account state
+```
+
+Vérifier également :
+
+```text
+Login
+ ↓
+Dashboard
+ ↓
+Refresh
+ ↓
+Still authenticated?
+```
+
+Et :
+
+```text
+Logout
+ ↓
+Back button
+ ↓
+Protected page accessible?
+```
+
+Ne pas effectuer ici le pentest complet : les contrôles de sécurité approfondis sont réservés au Security Gate.
+
+---
+
+# 6. PHASE D — PAGE & NAVIGATION TESTING
+
+Tester toutes les routes.
+
+Pour chaque page :
+
+```text
+Direct URL
+Internal navigation
+Back
+Forward
+Refresh
+Deep link
+New tab
+Ctrl/Cmd + click
+Middle click
+Right click where applicable
+Open in new tab
+Open in new window
+```
+
+Vérifier :
+
+- route correcte ;
+- état conservé ;
+- état perdu correctement ;
+- erreurs 404 ;
+- erreurs de chargement ;
+- redirections ;
+- liens cassés ;
+- routes protégées.
+
+---
+
+# 7. PHASE E — CRUD TESTING
+
+Pour chaque entité métier :
+
+```text
+CREATE
+READ
+UPDATE
+DELETE
+```
+
+Tester également :
+
+```text
+Empty state
+Single record
+Many records
+Duplicate record
+Invalid record
+Cancel
+Retry
+Refresh
+Concurrent modification where relevant
+```
+
+Vérifier :
+
+```text
+UI
+ ↓
+State
+ ↓
+Storage/API
+ ↓
+Reload
+ ↓
+Data still correct?
+```
+
+Une opération n'est PASS que si la persistance est vérifiée.
+
+---
+
+# 8. PHASE F — FORM TESTING
+
+Pour chaque formulaire :
+
+### Valid cases
+
+- valeur normale ;
+- valeurs minimales ;
+- valeurs maximales ;
+- données complètes.
+
+### Invalid cases
+
+- champ vide ;
+- format incorrect ;
+- caractères inattendus ;
+- valeur trop longue ;
+- valeur trop courte ;
+- doublon ;
+- date invalide ;
+- nombre invalide ;
+- fichier invalide si upload.
+
+Vérifier :
+
+```text
+Validation message
+Field state
+Submit prevention
+Server/API validation where applicable
+Persistence
+Reset
+Cancel
+```
+
+---
+
+# 9. PHASE G — SEARCH / FILTER / SORT / PAGINATION
+
+Tester :
+
+```text
+Search exact
+Search partial
+No result
+Case variations
+Special characters
+Filter one
+Multiple filters
+Reset filters
+Sort ascending
+Sort descending
+Pagination
+Large dataset
+```
+
+Vérifier que les résultats affichés correspondent réellement aux données.
+
+---
+
+# 10. PHASE H — IMPORT / EXPORT
+
+Si présent :
+
+## Import
+
+Tester :
+
+```text
+Valid file
+Empty file
+Malformed file
+Wrong format
+Large file
+Duplicate data
+Missing columns
+Extra columns
+Encoding
+```
+
+## Export
+
+Tester :
+
+```text
+CSV
+Excel
+PDF
+JSON
+Other formats
+```
+
+Vérifier :
+
+- fichier généré ;
+- nom ;
+- format ;
+- intégrité ;
+- données ;
+- encodage ;
+- téléchargement ;
+- ouverture du fichier.
+
+---
+
+# 11. PHASE I — DASHBOARD & REPORTING
+
+Vérifier :
+
+- compteurs ;
+- graphiques ;
+- tableaux ;
+- filtres ;
+- périodes ;
+- données réelles ;
+- états vides ;
+- loading ;
+- erreurs ;
+- actualisation ;
+- cohérence entre dashboard et données sources.
+
+Attention :
+
+> Un dashboard visuellement correct mais alimenté par des données incorrectes est un FAIL fonctionnel.
+
+---
+
+# 12. PHASE J — SDK FUNCTIONAL INTEGRATION
+
+Après intégration du SDK, tester les parcours dépendant du SDK.
+
+Cartographier :
+
+```text
+SaaS
+ ↓
+SDK
+ ↓
+Hub/API
+ ↓
+Response
+ ↓
+SaaS
+```
+
+Tester :
+
+```text
+SDK initialization
+Product identification
+Application identification
+Authentication/session
+License state
+Entitlement state
+Payment state where applicable
+Hub communication
+Error response
+Timeout
+Retry
+Network interruption
+```
+
+Tester particulièrement les cas :
+
+```text
+SDK available
+SDK unavailable
+Hub unavailable
+Invalid response
+Expired license
+Revoked license
+Wrong product
+Network offline
+Network restored
+```
+
+Vérifier que l'intégration SDK n'a pas cassé les fonctionnalités historiques du SaaS.
+
+---
+
+# 13. PHASE K — REGRESSION TESTING
+
+Comparer :
+
+```text
+BEFORE SDK
+      VS
+AFTER SDK
+```
+
+Construire une matrice :
+
+| Fonctionnalité | Avant | Après | Résultat |
+|---|---|---|---|
+
+Toute fonctionnalité existante qui fonctionnait avant mais ne fonctionne plus après SDK = **REGRESSION**.
+
+Priorité :
+
+```text
+P0 critical
+P1 major
+P2 normal
+P3 minor
+```
+
+---
+
+# 14. PHASE L — ERROR & RECOVERY TESTING
+
+Tester :
+
+```text
+API unavailable
+Slow API
+Timeout
+Network lost
+Network restored
+Server error
+Malformed response
+Empty response
+Storage unavailable
+Invalid state
+Refresh during operation
+Close during operation
+Reopen application
+```
+
+Vérifier :
+
+- message utilisateur ;
+- état de chargement ;
+- absence de blocage permanent ;
+- retry ;
+- récupération ;
+- conservation des données ;
+- cohérence après récupération.
+
+---
+
+# 15. PHASE M — PWA TESTING
+
+Si le projet est une PWA, tester :
+
+```text
+Install
+Launch
+Reload
+Refresh
+Standalone mode
+Browser mode
+Manifest
+Icons
+Service worker
+Cache
+Update
+Uninstall/reinstall
+```
+
+Vérifier que l'application ne devient pas incohérente après mise à jour.
+
+---
+
+# 16. PHASE N — OFFLINE-FIRST TESTING
+
+Si l'application supporte le offline :
+
+## Scénario 1
+
+```text
+ONLINE
+ ↓
+Create data
+ ↓
+Offline
+ ↓
+Read data
+```
+
+## Scénario 2
+
+```text
+Offline
+ ↓
+Create data
+ ↓
+Edit
+ ↓
+Delete
+ ↓
+Reconnect
+ ↓
+Synchronize
+```
+
+## Scénario 3
+
+```text
+Offline
+ ↓
+Close app
+ ↓
+Reopen
+ ↓
+Data still available?
+```
+
+## Scénario 4
+
+```text
+Offline changes
+      +
+Server changes
+      ↓
+Conflict
+```
+
+Tester la stratégie réelle de résolution des conflits.
+
+---
+
+# 17. PHASE O — SYNCHRONIZATION TESTING
+
+Vérifier :
+
+```text
+Queue
+Retry
+Ordering
+Duplicates
+Idempotency
+Conflict
+Partial failure
+Reconnect
+Repeated reconnect
+```
+
+Après synchronisation :
+
+```text
+Local state
+=
+Expected server state
+```
+
+ou, si le système utilise une autre stratégie :
+
+```text
+Local state
+=
+Expected resolved state
+```
+
+---
+
+# 18. PHASE P — RESPONSIVE TESTING
+
+Tester au minimum :
+
+```text
+Desktop
+Tablet
+Mobile
+```
+
+Vérifier :
+
+- navigation ;
+- sidebar ;
+- menus ;
+- tableaux ;
+- formulaires ;
+- modals ;
+- boutons ;
+- textes ;
+- overflow ;
+- scroll ;
+- orientation.
+
+Si un appareil réel n'est pas disponible :
+
+`MANUAL DEVICE TEST REQUIRED`
+
+---
+
+# 19. PHASE Q — BROWSER COMPATIBILITY
+
+Tester, lorsque disponible :
+
+```text
+Chrome
+Edge
+Firefox
+Safari
+Android browser
+iOS Safari
+```
+
+Ne jamais déclarer qu'un navigateur réel a été testé sans accès à celui-ci.
+
+Créer une matrice :
+
+| Browser | Version | Desktop/Mobile | Result | Evidence |
+|---|---|---|---|---|
+
+---
+
+# 20. PHASE R — PERFORMANCE BASELINE
+
+Mesurer, lorsque les outils/environnements le permettent :
+
+```text
+Initial load
+Time to usable UI
+Navigation latency
+API latency
+Rendering
+JavaScript execution
+Memory
+CPU
+Bundle size
+Asset size
+Database/storage operations
+```
+
+Ne pas inventer de métriques.
+
+Rapporter les métriques réellement mesurées.
+
+---
+
+# 21. PHASE S — NETWORK PERFORMANCE
+
+Tester, lorsque possible :
+
+```text
+Fast network
+Slow network
+High latency
+Intermittent connection
+Offline
+Reconnect
+```
+
+Vérifier :
+
+- loading state ;
+- timeout ;
+- retry ;
+- absence de double soumission ;
+- cohérence des données.
+
+---
+
+# 22. PHASE T — LARGE DATASET TESTING
+
+Identifier les écrans manipulant beaucoup de données.
+
+Tester progressivement selon les capacités de l'environnement :
+
+```text
+10
+100
+1,000
+10,000
+100,000
+```
+
+Ne pas charger artificiellement une taille impossible ou dangereuse.
+
+Mesurer :
+
+- temps de chargement ;
+- temps de recherche ;
+- temps de filtrage ;
+- temps de tri ;
+- mémoire ;
+- rendu ;
+- pagination/virtualisation.
+
+---
+
+# 23. PHASE U — USER INTERACTION TESTING
+
+Tester les interactions utilisateur :
+
+```text
+Single click
+Double click
+Rapid repeated click
+Keyboard navigation
+Enter
+Escape
+Tab
+Shift+Tab
+Space
+Arrow keys
+Copy/paste
+Right click
+Open in new tab
+```
+
+Vérifier les comportements accidentels :
+
+```text
+Double submit
+Duplicate creation
+Duplicate payment initiation
+Duplicate request
+Modal stuck
+Button stuck
+Loading forever
+```
+
+---
+
+# 24. PHASE V — ACCESSIBILITY FUNCTIONAL CHECK
+
+Effectuer une vérification fonctionnelle de base :
+
+- navigation clavier ;
+- focus visible ;
+- labels ;
+- boutons ;
+- champs ;
+- messages d'erreur ;
+- contrastes si l'outil permet une mesure ;
+- structure sémantique.
+
+Ce n'est pas un audit WCAG complet, sauf si explicitement demandé.
+
+---
+
+# 25. PHASE W — TEST MATRIX
+
+Construire une matrice globale :
+
+| ID | Test | Priority | Automated | Manual | Status | Evidence |
+|---|---|---:|---|---|---|---|
+
+Statuts autorisés :
+
+```text
+PASS
+FAIL
+BLOCKED
+NOT TESTED
+MANUAL REQUIRED
+NOT APPLICABLE
+```
+
+---
+
+# 26. PHASE X — DEFECT CLASSIFICATION
+
+Chaque défaut doit contenir :
+
+```text
+ID
+Title
+Severity
+Priority
+Module
+Environment
+Precondition
+Steps to reproduce
+Expected result
+Actual result
+Evidence
+Impact
+Possible root cause
+Recommendation
+Status
+```
+
+Sévérité :
+
+```text
+CRITICAL
+HIGH
+MEDIUM
+LOW
+INFO
+```
+
+---
+
+# 27. PHASE Y — CORRECTION & RETEST
+
+Ne modifier le code que si explicitement autorisé.
+
+Processus :
+
+```text
+FAIL
+ ↓
+Root cause
+ ↓
+Proposed fix
+ ↓
+Authorization
+ ↓
+Fix
+ ↓
+Retest
+ ↓
+Regression
+ ↓
+Close
+```
+
+Après une correction importante :
+
+```text
+Targeted test
++
+Regression test
+```
+
+Une correction n'est validée qu'après preuve.
+
+---
+
+# 28. PHASE Z — PERFORMANCE REGRESSION
+
+Si une correction modifie :
+
+- rendering ;
+- state management ;
+- SDK ;
+- API ;
+- database access ;
+- storage ;
+- synchronization ;
+
+réévaluer les métriques concernées.
+
+Comparer :
+
+```text
+Before
+VS
+After
+```
+
+Ne jamais déclarer "plus rapide" sans mesure.
+
+---
+
+# 29. MANUAL TEST GENERATOR
+
+Pour toute vérification que l'IA ne peut pas réellement exécuter, générer :
+
+`MANUAL_FUNCTIONAL_PERFORMANCE_TESTS.html`
+
+Le document HTML doit contenir :
+
+```text
+Test ID
+Category
+Objective
+Priority
+Prerequisites
+Environment
+Steps
+Expected Result
+Actual Result
+PASS / FAIL
+Evidence
+Screenshot
+Tester
+Date
+Notes
+```
+
+Il doit être utilisable sur un vrai appareil.
+
+Catégories minimales :
+
+```text
+Functional
+Navigation
+Mobile
+Browser
+PWA
+Offline
+Synchronization
+Performance
+SDK
+Regression
+```
+
+---
+
+# 30. PERFORMANCE TESTS REQUIRING HUMAN/DEDICATED ENVIRONMENT
+
+Si les outils disponibles ne permettent pas une mesure fiable, produire une procédure pour :
+
+- Lighthouse / équivalent ;
+- browser performance tools ;
+- network throttling ;
+- mobile device testing ;
+- memory profiling ;
+- CPU profiling ;
+- load testing en environnement contrôlé.
+
+Ne jamais prétendre avoir obtenu ces métriques si l'outil n'a pas réellement été utilisé.
+
+---
+
+# 31. REQUIRED OUTPUT FILES
+
+Produire :
+
+## 31.1 Rapport principal
+
+`FUNCTIONAL_PERFORMANCE_AUDIT_REPORT.md`
+
+## 31.2 Test matrix
+
+`FUNCTIONAL_TEST_MATRIX.csv`
+
+## 31.3 Defects
+
+`FUNCTIONAL_PERFORMANCE_FINDINGS.json`
+
+Structure :
+
+```json
+{
+  "audit": {
+    "project": "",
+    "version": "",
+    "date": "",
+    "status": ""
+  },
+  "findings": []
+}
+```
+
+## 31.4 Manual test document
+
+`MANUAL_FUNCTIONAL_PERFORMANCE_TESTS.html`
+
+## 31.5 Evidence
+
+`FUNCTIONAL_PERFORMANCE_EVIDENCE.md`
+
+---
+
+# 32. FINAL REPORT STRUCTURE
+
+Le rapport doit contenir :
+
+```text
+1. Executive Summary
+2. Environment
+3. Functional Inventory
+4. User Journeys
+5. Authentication Functional Tests
+6. Navigation Tests
+7. CRUD Tests
+8. Form Tests
+9. Search/Filter/Sort Tests
+10. Import/Export Tests
+11. Dashboard Tests
+12. SDK Functional Integration
+13. Regression Tests
+14. Error & Recovery
+15. PWA
+16. Offline
+17. Synchronization
+18. Responsive
+19. Browser Compatibility
+20. Performance
+21. Network Conditions
+22. Large Dataset
+23. User Interaction
+24. Accessibility Basic Checks
+25. Defects
+26. Corrections
+27. Retests
+28. Manual Tests Required
+29. Items Forwarded to Security
+30. Final Recommendation
+```
+
+---
+
+# 33. FINAL GO / NO-GO
+
+Classer le résultat :
+
+### 🟢 PASS
+Tous les parcours critiques passent et aucun défaut bloquant n'est identifié.
+
+### 🟡 CONDITIONAL PASS
+Les parcours critiques passent mais des risques non bloquants subsistent.
+
+### 🔴 FAIL
+Un parcours critique est cassé ou un défaut bloquant reste ouvert.
+
+### ⚫ BLOCKED
+L'environnement ou les appareils nécessaires ne sont pas disponibles.
+
+---
+
+# 34. FINAL QUALITY CHECK
+
+Avant de conclure :
+
+1. Toutes les fonctionnalités critiques ont-elles été inventoriées ?
+2. Les parcours utilisateurs critiques ont-ils été testés ?
+3. Les cas négatifs ont-ils été testés ?
+4. CRUD a-t-il été vérifié ?
+5. Les formulaires ont-ils été testés ?
+6. La navigation a-t-elle été testée ?
+7. La non-régression avant/après SDK a-t-elle été analysée ?
+8. Le SDK a-t-il été testé fonctionnellement ?
+9. Le mode offline a-t-il été testé lorsqu'il existe ?
+10. La synchronisation a-t-elle été testée ?
+11. Les erreurs et récupérations ont-elles été testées ?
+12. Les environnements mobile/browser ont-ils été distingués entre tests réels et tests non disponibles ?
+13. Les performances ont-elles été mesurées plutôt qu'estimées ?
+14. Les gros volumes ont-ils été testés lorsque pertinent ?
+15. Les défauts disposent-ils de preuves ?
+16. Les corrections ont-elles été retestées ?
+17. Les tests manuels nécessaires ont-ils été générés ?
+18. Les limites de l'audit sont-elles explicitement documentées ?
+
+Toute réponse négative doit être expliquée.
+
+---
+
+# 35. MANDATORY FINAL RESPONSE FORMAT
+
+Retourner :
+
+```text
+PROJECT
+VERSION
+ENVIRONMENT
+
+FUNCTIONAL STATUS:
+PASS / CONDITIONAL PASS / FAIL / BLOCKED
+
+CRITICAL FAILURES:
+...
+
+HIGH FAILURES:
+...
+
+MEDIUM FAILURES:
+...
+
+LOW FAILURES:
+...
+
+FUNCTIONAL TESTS EXECUTED:
+...
+
+REGRESSION RESULTS:
+...
+
+SDK FUNCTIONAL RESULTS:
+...
+
+PWA/OFFLINE RESULTS:
+...
+
+SYNCHRONIZATION RESULTS:
+...
+
+BROWSER RESULTS:
+...
+
+PERFORMANCE RESULTS:
+...
+
+TESTS NOT EXECUTED:
+...
+
+MANUAL TESTS REQUIRED:
+...
+
+CORRECTIONS APPLIED:
+...
+
+RETEST RESULTS:
+...
+
+FORWARDED TO SECURITY:
+...
+
+FORWARDED TO TECHNICAL AUDIT:
+...
+
+FINAL RECOMMENDATION:
+GO / NO-GO / CONDITIONAL GO
+```
+
+**Ne jamais transformer un test non exécuté en PASS.**
+
+---
+
+# END OF MASTER FUNCTIONAL & PERFORMANCE AUDIT

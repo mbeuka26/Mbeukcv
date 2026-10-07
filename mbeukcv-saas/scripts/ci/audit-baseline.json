@@ -1,0 +1,4 @@
+{
+  "note": "Identifiants npm audit déjà connus sur Next.js 14 et PostCSS. Le correctif proposé par npm est Next.js 16, une montée de version séparée. Toute alerte high ou critical hors de cette liste bloque le déploiement.",
+  "allow": [1112653, 1116376, 1117931, 1118954, 1118962, 1124172, 1124185, 1124193, 1193677, 1193733, 1124252, 1139510]
+}

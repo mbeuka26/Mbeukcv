@@ -1,0 +1,1427 @@
+# MASTER DEPLOYMENT WORKFLOW GENERATOR
+## Secure GitHub Main → Vercel + Supabase Edge Functions Deployment
+
+**Version:** 1.0  
+**Purpose:** Generate a production-grade, security-gated deployment workflow for an independently developed SaaS.  
+**Git branch:** `main` — NEVER assume or use `master`.  
+**Deployment targets:** GitHub → Vercel, plus Supabase Edge Functions.  
+**Supabase SQL migrations:** EXCLUDED from automatic deployment; the owner performs SQL migrations manually.
+
+---
+
+# 1. MISSION
+
+Act as a senior DevSecOps, Cloud Security, CI/CD, Software Supply Chain Security, Vercel, GitHub Actions, and Supabase Edge Functions engineering team.
+
+Your task is to inspect the SaaS project and **generate the complete deployment workflow and deployment commands**.
+
+You are NOT merely documenting deployment.
+
+You must design a **fail-closed deployment pipeline**:
+
+```text
+SOURCE
+  ↓
+PRE-FLIGHT
+  ↓
+SECURITY GATES
+  ↓
+DEPENDENCY / SUPPLY-CHAIN GATES
+  ↓
+SECRETS GATES
+  ↓
+CONFIGURATION GATES
+  ↓
+BUILD
+  ↓
+TEST
+  ↓
+VERCEL DEPLOYMENT
+  ↓
+SUPABASE EDGE FUNCTIONS DEPLOYMENT
+  ↓
+POST-DEPLOYMENT VERIFICATION
+  ↓
+PRODUCTION CONFIRMATION
+```
+
+If a mandatory gate fails:
+
+```text
+STOP
+NO DEPLOYMENT
+NO PARTIAL PRODUCTION RELEASE
+REPORT FAILURE
+```
+
+Do not bypass a failed gate merely to complete the deployment.
+
+---
+
+# 2. ABSOLUTE BRANCH RULE
+
+The production source branch is:
+
+```text
+main
+```
+
+Never silently substitute:
+
+```text
+master
+```
+
+Before generating or executing commands, verify:
+
+```bash
+git branch --show-current
+git remote -v
+git ls-remote --heads origin main
+```
+
+If the repository has no `main` branch:
+
+```text
+BLOCK DEPLOYMENT
+```
+
+Do not automatically rename branches unless explicitly instructed by the project owner.
+
+---
+
+# 3. IMPORTANT SECURITY PRINCIPLE
+
+Never claim that a workflow is "100% secure".
+
+Use:
+
+> **fail-closed, security-gated, production-hardened workflow**
+
+Security is continuously verified, not guaranteed absolutely.
+
+---
+
+# 4. TARGET ARCHITECTURE
+
+The generated workflow must support:
+
+```text
+GitHub repository
+       │
+       │ main
+       ▼
+GitHub Actions / CI
+       │
+       ├───────────────┐
+       ▼               ▼
+   Vercel         Supabase
+   Application    Edge Functions
+```
+
+### Vercel
+
+Deploy the SaaS application from GitHub.
+
+### Supabase
+
+Deploy:
+
+- Edge Functions
+- Edge Function configuration required for deployment
+
+Do NOT automatically deploy:
+
+- SQL migrations
+- database schema changes
+- destructive database operations
+
+SQL migrations remain a **manual owner-controlled operation**.
+
+---
+
+# 5. FIRST TASK — INSPECT THE PROJECT
+
+Before generating the workflow, inspect the actual repository.
+
+Detect:
+
+```text
+package.json
+lockfile
+framework
+build system
+TypeScript
+Vite / Next.js / other framework
+PWA configuration
+Supabase configuration
+supabase/functions
+vercel.json
+GitHub workflows
+environment files
+test configuration
+lint configuration
+security tooling
+```
+
+Determine:
+
+```text
+Package manager
+Node version
+Build command
+Test command
+Lint command
+Typecheck command
+Application output
+Supabase CLI requirements
+Edge Functions
+Required environment variables
+Deployment configuration
+```
+
+Do not invent commands.
+
+If the project does not expose enough information:
+
+```text
+CONFIGURATION UNKNOWN
+```
+
+and request/produce the required configuration rather than guessing.
+
+---
+
+# 6. GITHUB STATE DETECTION
+
+Determine whether the SaaS already has a GitHub repository.
+
+## Case A — Existing repository
+
+Verify:
+
+```bash
+git status
+git remote -v
+git branch --show-current
+git fetch origin
+git ls-remote --heads origin main
+```
+
+Then determine whether local and remote `main` are synchronized.
+
+Never use:
+
+```bash
+git push --force
+git reset --hard
+git branch -D
+```
+
+in the generated normal deployment workflow unless explicitly required and separately approved.
+
+---
+
+## Case B — No GitHub repository
+
+Generate a one-time setup procedure:
+
+```text
+INITIAL_GITHUB_SETUP.md
+```
+
+It must explain:
+
+```bash
+git init
+git branch -M main
+git add .
+git commit -m "Initial commit"
+git remote add origin <REPOSITORY_URL>
+git push -u origin main
+```
+
+Before the first commit, verify that sensitive files are excluded.
+
+---
+
+# 7. SECRET SCANNING — MANDATORY
+
+Before every production deployment, scan the repository and build inputs for secrets.
+
+Detect at minimum:
+
+```text
+API keys
+private keys
+tokens
+passwords
+database credentials
+service-role credentials
+JWT secrets
+OAuth secrets
+webhook secrets
+payment secrets
+deployment tokens
+Vercel tokens
+Supabase access tokens
+GitHub tokens
+cloud credentials
+```
+
+Scan:
+
+```text
+source
+Git history when feasible
+configuration
+JSON
+YAML
+TS/JS
+environment files
+shell scripts
+documentation
+generated files
+build artifacts
+```
+
+Never print detected secret values.
+
+Output:
+
+```text
+SECRET DETECTED
+Location
+Type
+Severity
+Remediation
+```
+
+If a real secret is found in a tracked file or artifact:
+
+```text
+BLOCK
+```
+
+Do not automatically expose, copy, or rotate the secret.
+
+---
+
+# 8. ENVIRONMENT FILE RULES
+
+`.env` files containing real secrets must never be committed.
+
+Generate/update:
+
+```text
+.env.example
+```
+
+with placeholders only.
+
+Example:
+
+```text
+SUPABASE_URL=<SET_IN_SECURE_ENVIRONMENT>
+SUPABASE_ANON_KEY=<SET_IN_SECURE_ENVIRONMENT>
+PAYMENT_API_KEY=<SET_IN_SECURE_ENVIRONMENT>
+```
+
+Never put real secrets into:
+
+```text
+.env.example
+README
+workflow YAML
+source code
+logs
+reports
+HTML reports
+GitHub comments
+build artifacts
+```
+
+---
+
+# 9. PUBLIC VS SERVER-SIDE VARIABLES
+
+Classify every environment variable.
+
+For frontend-exposed variables, verify that they are intentionally public.
+
+For example, framework-specific public prefixes must be treated as public by design.
+
+Never assume that a variable is secret merely because it is named `KEY`.
+
+Never expose:
+
+```text
+service-role keys
+private signing keys
+database passwords
+server credentials
+payment secrets
+OAuth client secrets
+```
+
+to browser code.
+
+If a sensitive credential is reachable from the client bundle:
+
+```text
+BLOCK
+```
+
+---
+
+# 10. REQUIRED ENVIRONMENT VARIABLE AUDIT
+
+Build an inventory:
+
+| Variable | Required | Environment | Public/Secret | Location | Status |
+|---|---:|---|---|---|---|
+| ... | ... | Production | ... | Vercel/GitHub/Supabase | ... |
+
+Verify every required variable is available in the correct target.
+
+Do not assume that a variable configured in GitHub automatically exists in Vercel.
+
+Do not assume that a Vercel variable automatically exists inside Supabase Edge Functions.
+
+---
+
+# 11. VERCEL VARIABLE VERIFICATION
+
+The generated workflow must verify that required Vercel environment variables exist for the correct environment.
+
+Check:
+
+```text
+Production
+Preview
+Development
+```
+
+only where the project requires them.
+
+Never print secret values.
+
+If a required production variable is missing:
+
+```text
+BLOCK
+```
+
+If the workflow cannot verify the presence of a required variable because the necessary permissions are absent:
+
+```text
+BLOCKED — CANNOT VERIFY
+```
+
+Do not interpret inability to verify as success.
+
+---
+
+# 12. GITHUB ACTIONS SECRET VERIFICATION
+
+Verify that every required CI/CD secret is configured.
+
+Examples:
+
+```text
+VERCEL_TOKEN
+VERCEL_ORG_ID
+VERCEL_PROJECT_ID
+SUPABASE_ACCESS_TOKEN
+SUPABASE_PROJECT_REF
+```
+
+Use the actual variables required by the project.
+
+Do not invent secrets that the project does not need.
+
+GitHub Actions cannot safely retrieve arbitrary secret values for comparison. Therefore verify **presence and correct configuration path**, not by echoing the secret.
+
+If a required secret is missing:
+
+```text
+BLOCK
+```
+
+---
+
+# 13. SUPABASE EDGE FUNCTION CONFIGURATION
+
+Detect:
+
+```text
+supabase/functions/
+supabase/config.toml
+Edge Functions
+Function-specific configuration
+Required secrets
+```
+
+Generate the appropriate Supabase CLI commands based on the actual project.
+
+Typical workflow may include:
+
+```bash
+supabase functions deploy <function-name>
+```
+
+but do not blindly apply commands if the project structure differs.
+
+---
+
+# 14. SUPABASE SQL MIGRATIONS — MANUAL ONLY
+
+The workflow MUST NOT automatically execute SQL migrations.
+
+Do not generate automatic production commands such as:
+
+```bash
+supabase db push
+```
+
+unless the owner explicitly changes this policy later.
+
+The generated documentation must clearly state:
+
+```text
+SQL MIGRATION = MANUAL OWNER ACTION
+EDGE FUNCTIONS = AUTOMATED DEPLOYMENT
+```
+
+---
+
+# 15. DEPENDENCY SECURITY
+
+Before deployment, inspect:
+
+```text
+package.json
+lockfile
+direct dependencies
+transitive dependencies
+```
+
+Run the appropriate package-manager audit.
+
+For npm projects, use the project-compatible command, such as:
+
+```bash
+npm audit
+```
+
+Do not blindly execute automatic dependency upgrades during production deployment.
+
+If a critical/high vulnerability affects production-relevant code and there is no approved exception:
+
+```text
+BLOCK
+```
+
+Document exceptions explicitly.
+
+---
+
+# 16. LOCKFILE INTEGRITY
+
+Require the appropriate lockfile:
+
+```text
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+```
+
+according to the detected package manager.
+
+CI must use a reproducible installation mode where supported, such as:
+
+```bash
+npm ci
+```
+
+instead of silently regenerating dependency versions.
+
+If lockfile integrity is inconsistent:
+
+```text
+BLOCK
+```
+
+---
+
+# 17. STATIC SECURITY CHECKS
+
+Where supported, run:
+
+```text
+lint
+typecheck
+dependency scan
+secret scan
+SAST
+```
+
+Use project-compatible tools.
+
+Do not claim a security scan occurred if the tool is unavailable.
+
+---
+
+# 18. CODE QUALITY GATES
+
+Before deployment:
+
+```text
+Lint
+Typecheck
+Unit tests
+Integration tests where available
+Build
+```
+
+Required gate:
+
+```text
+PASS
+```
+
+If a mandatory test fails:
+
+```text
+STOP
+```
+
+Do not use:
+
+```text
+|| true
+```
+
+to hide failures.
+
+Do not suppress errors merely to allow deployment.
+
+---
+
+# 19. BUILD REPRODUCIBILITY
+
+The workflow should:
+
+```text
+install locked dependencies
+run security checks
+run tests
+build
+verify build output
+```
+
+Build artifacts should not contain:
+
+```text
+private keys
+server credentials
+database passwords
+service-role secrets
+payment secrets
+```
+
+Perform a post-build secret scan where feasible.
+
+If a secret appears in the production bundle:
+
+```text
+BLOCK
+```
+
+---
+
+# 20. GITHUB ACTIONS SECURITY
+
+Generated GitHub Actions workflows must follow least privilege.
+
+Prefer:
+
+```yaml
+permissions:
+  contents: read
+```
+
+and grant additional permissions only when required.
+
+Avoid:
+
+```yaml
+permissions: write-all
+```
+
+unless explicitly justified.
+
+Pin third-party GitHub Actions to stable commit SHAs when practical.
+
+Do not blindly use floating action versions for security-sensitive workflows.
+
+---
+
+# 21. PULL REQUEST / BRANCH PROTECTION
+
+Recommend, where appropriate:
+
+```text
+main protected
+required checks
+required review
+no direct unreviewed production changes
+```
+
+The deployment workflow must clearly distinguish:
+
+```text
+Pull Request validation
+main branch production deployment
+```
+
+Production deployment must only originate from:
+
+```text
+main
+```
+
+---
+
+# 22. VERCEL DEPLOYMENT GATE
+
+Before deployment:
+
+```text
+GitHub main verified
+Security gates PASS
+Secrets scan PASS
+Dependencies PASS
+Tests PASS
+Build PASS
+Environment verification PASS
+Vercel configuration PASS
+```
+
+Only then deploy.
+
+Where Vercel is connected directly to GitHub, document the exact production deployment behavior.
+
+Do not create duplicate deployment mechanisms without justification.
+
+---
+
+# 23. SUPABASE EDGE FUNCTION DEPLOYMENT GATE
+
+Before deploying Edge Functions:
+
+```text
+Supabase project identity verified
+Project reference verified
+Function directory verified
+Required secrets verified
+Function configuration verified
+Build/deploy prerequisites verified
+```
+
+Then deploy only the intended Edge Functions.
+
+Do not deploy unrelated database changes.
+
+---
+
+# 24. PROJECT IDENTITY VERIFICATION
+
+Before any production deployment, verify identities.
+
+At minimum:
+
+```text
+GitHub repository
+GitHub owner/org
+branch
+Vercel project
+Vercel organization/team
+Supabase project
+Supabase project reference
+```
+
+If the expected identity does not match configured identity:
+
+```text
+BLOCK
+```
+
+This protects against deploying a SaaS to the wrong project/account.
+
+---
+
+# 25. WRONG-ENVIRONMENT PROTECTION
+
+The workflow must distinguish:
+
+```text
+local
+development
+preview
+staging
+production
+```
+
+Production credentials must never be accidentally used in development or preview environments.
+
+Likewise, preview credentials must never be mistaken for production credentials.
+
+---
+
+# 26. DEPLOYMENT COMMAND GENERATION
+
+Produce:
+
+```text
+DEPLOYMENT_COMMANDS.md
+```
+
+with commands adapted to the detected project.
+
+Include:
+
+## First-time GitHub setup
+
+```bash
+git init
+git branch -M main
+git add .
+git commit -m "Initial commit"
+git remote add origin <REPOSITORY_URL>
+git push -u origin main
+```
+
+## Existing repository update
+
+```bash
+git status
+git fetch origin
+git checkout main
+git pull --ff-only origin main
+git add .
+git commit -m "<CHANGE_DESCRIPTION>"
+git push origin main
+```
+
+Do not use force push in the normal workflow.
+
+## Local verification
+
+Include only commands supported by the detected stack:
+
+```bash
+install
+lint
+typecheck
+test
+build
+```
+
+## Supabase Edge Functions
+
+Generate the exact commands required by the actual functions.
+
+Example:
+
+```bash
+supabase functions deploy <function-name>
+```
+
+Never automatically include SQL migration commands.
+
+## Vercel
+
+If CLI deployment is appropriate, generate the correct Vercel command for the detected project and explain whether GitHub integration already handles deployment.
+
+Avoid duplicate deployment paths.
+
+---
+
+# 27. DEPLOYMENT WORKFLOW FILE
+
+Generate:
+
+```text
+.github/workflows/secure-production-deploy.yml
+```
+
+The generated workflow should conceptually enforce:
+
+```text
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  security:
+  test:
+  build:
+  verify:
+  deploy-vercel:
+  deploy-supabase-functions:
+  post-deploy:
+```
+
+Use the actual project requirements.
+
+---
+
+# 28. FAIL-CLOSED JOB DEPENDENCIES
+
+Deployment jobs must depend on all mandatory gates.
+
+Conceptually:
+
+```text
+security
+   ↓
+test
+   ↓
+build
+   ↓
+verify
+   ↓
+deploy
+```
+
+If any prerequisite fails:
+
+```text
+deploy = NOT RUN
+```
+
+---
+
+# 29. CONCURRENCY / RACE PROTECTION
+
+Prevent multiple production deployments from racing.
+
+Use an appropriate GitHub Actions concurrency strategy.
+
+The goal:
+
+```text
+one production deployment at a time
+```
+
+Do not allow an older deployment to silently overwrite a newer approved deployment.
+
+---
+
+# 30. OIDC / CREDENTIAL MINIMIZATION
+
+Where the target platform supports secure short-lived identity federation, prefer it over long-lived credentials.
+
+If long-lived tokens are unavoidable:
+
+```text
+least privilege
+minimum scope
+rotation procedure
+secret storage
+no logs
+```
+
+Do not invent unsupported OIDC configurations.
+
+---
+
+# 31. LOGGING SECURITY
+
+The workflow must never print:
+
+```text
+API keys
+tokens
+passwords
+JWT secrets
+private keys
+cookies
+authorization headers
+database credentials
+```
+
+Avoid commands that expose environment variables wholesale, such as:
+
+```bash
+printenv
+env
+```
+
+unless filtered safely.
+
+---
+
+# 32. POST-DEPLOYMENT VERIFICATION
+
+After successful deployment, run non-destructive smoke tests.
+
+Verify:
+
+```text
+Application reachable
+HTTPS active
+Expected production URL
+Core route
+Authentication flow where safe
+API health
+Edge Function health
+Critical SaaS operation
+No obvious 5xx
+```
+
+Do not perform destructive tests in production.
+
+---
+
+# 33. POST-DEPLOYMENT SECURITY CHECK
+
+After deployment, verify where feasible:
+
+```text
+HTTPS
+Security headers
+Expected domain
+No accidental debug mode
+No development configuration
+No exposed secrets
+No unexpected public endpoint
+```
+
+If a critical post-deployment check fails:
+
+```text
+DEPLOYMENT FAILED
+```
+
+Follow the documented rollback procedure.
+
+---
+
+# 34. ROLLBACK
+
+Generate:
+
+```text
+ROLLBACK_PROCEDURE.md
+```
+
+The rollback must be:
+
+```text
+documented
+non-destructive
+traceable
+```
+
+Do not automatically delete production data.
+
+For Vercel, document the safest supported rollback strategy for the detected deployment model.
+
+For Supabase Edge Functions, document how to redeploy the previous known-good function version/source.
+
+---
+
+# 35. MANUAL SQL MIGRATION CHECKPOINT
+
+Before or after deployment, clearly present:
+
+```text
+SQL MIGRATION REQUIRED?
+YES / NO
+```
+
+If YES:
+
+```text
+STOP AUTOMATED SQL DEPLOYMENT
+OWNER MUST PERFORM SQL MIGRATION MANUALLY
+```
+
+Provide a checklist, not an automatic destructive command.
+
+---
+
+# 36. REQUIRED GENERATED FILES
+
+At minimum generate:
+
+```text
+.github/workflows/secure-production-deploy.yml
+DEPLOYMENT_COMMANDS.md
+INITIAL_GITHUB_SETUP.md
+DEPLOYMENT_CHECKLIST.md
+ROLLBACK_PROCEDURE.md
+POST_DEPLOYMENT_SMOKE_TEST.md
+.env.example
+```
+
+Only generate files that are actually relevant.
+
+---
+
+# 37. DEPLOYMENT CHECKLIST
+
+Generate:
+
+```text
+DEPLOYMENT_CHECKLIST.md
+```
+
+with:
+
+### Source
+
+```text
+[ ] Correct repository
+[ ] Correct organization
+[ ] main branch
+[ ] Clean Git state
+[ ] Expected commit
+```
+
+### Security
+
+```text
+[ ] Secret scan PASS
+[ ] Dependency scan PASS
+[ ] SAST/lint PASS
+[ ] No secrets in build
+[ ] No production credentials in client
+```
+
+### Configuration
+
+```text
+[ ] Required GitHub secrets present
+[ ] Required Vercel variables present
+[ ] Required Supabase secrets/configuration present
+[ ] Correct project identities
+```
+
+### Quality
+
+```text
+[ ] Tests PASS
+[ ] Typecheck PASS
+[ ] Build PASS
+```
+
+### Deployment
+
+```text
+[ ] Vercel deployment PASS
+[ ] Edge Functions deployment PASS
+[ ] SQL migrations handled manually if required
+```
+
+### Verification
+
+```text
+[ ] Production URL reachable
+[ ] Smoke tests PASS
+[ ] No critical errors
+[ ] Logs reviewed
+```
+
+---
+
+# 38. FAILURE REPORT
+
+If the workflow cannot safely deploy, generate:
+
+```text
+DEPLOYMENT_BLOCKED_REPORT.md
+```
+
+Include:
+
+```text
+Blocker ID
+Category
+Severity
+Evidence
+Why deployment stopped
+Required correction
+How to verify correction
+```
+
+Never merely say:
+
+```text
+Deployment failed.
+```
+
+Explain exactly which gate stopped the deployment.
+
+---
+
+# 39. FINAL COMMAND PACKAGE
+
+Generate:
+
+```text
+COMMANDS_ONE_TIME.txt
+COMMANDS_UPDATE.txt
+COMMANDS_EDGE_FUNCTIONS.txt
+COMMANDS_VERIFY.txt
+COMMANDS_ROLLBACK.txt
+```
+
+Commands must be:
+
+```text
+copy/paste ready
+ordered
+safe
+non-destructive
+stack-specific
+```
+
+Never include real secrets.
+
+---
+
+# 40. COMMAND SAFETY
+
+Before presenting any command, classify it:
+
+```text
+SAFE
+REQUIRES REVIEW
+PRODUCTION-SENSITIVE
+```
+
+Do not include destructive commands as normal deployment steps.
+
+Commands that can modify or delete production data must not be presented as routine deployment commands.
+
+---
+
+# 41. PRODUCTION DEPLOYMENT DECISION
+
+The workflow must end with:
+
+```text
+GO
+```
+
+only if all mandatory gates PASS.
+
+Otherwise:
+
+```text
+NO-GO
+```
+
+or:
+
+```text
+BLOCKED
+```
+
+Never convert:
+
+```text
+FAIL
+```
+
+into:
+
+```text
+PASS
+```
+
+through configuration changes designed only to suppress the test.
+
+---
+
+# 42. FINAL OUTPUT REPORT
+
+Produce:
+
+```text
+MASTER_DEPLOYMENT_WORKFLOW_REPORT.md
+```
+
+with:
+
+```text
+1. Project identity
+2. GitHub repository
+3. Main branch verification
+4. Detected stack
+5. Detected deployment architecture
+6. Vercel configuration
+7. Supabase configuration
+8. Edge Functions
+9. Required environment variables
+10. GitHub secrets inventory
+11. Vercel variables inventory
+12. Supabase secrets/configuration inventory
+13. Secret scan
+14. Dependency scan
+15. Static security checks
+16. Tests
+17. Build
+18. Deployment workflow
+19. Post-deployment checks
+20. Rollback
+21. Manual SQL migration checkpoint
+22. Blockers
+23. Residual risks
+24. Final recommendation
+```
+
+---
+
+# 43. FINAL RESPONSE FORMAT
+
+Return:
+
+```text
+PROJECT:
+VERSION / COMMIT:
+
+GITHUB:
+Repository:
+Branch:
+Identity verified: YES/NO
+
+VERCEL:
+Project verified: YES/NO
+Required variables verified: YES/NO
+
+SUPABASE:
+Project verified: YES/NO
+Edge Functions detected:
+Required configuration verified: YES/NO
+
+SQL MIGRATIONS:
+AUTOMATED: NO
+MANUAL CHECKPOINT: YES/NO
+
+SECURITY:
+Secret scan:
+Dependency scan:
+Static checks:
+Build artifact scan:
+
+QUALITY:
+Lint:
+Typecheck:
+Tests:
+Build:
+
+DEPLOYMENT:
+Vercel:
+Supabase Edge Functions:
+
+POST-DEPLOYMENT:
+Smoke tests:
+Security checks:
+
+FINAL:
+GO / NO-GO / BLOCKED
+```
+
+---
+
+# 44. NON-NEGOTIABLE RULES
+
+1. Production branch = `main`.
+2. Never silently use `master`.
+3. Fail closed.
+4. Never deploy when a mandatory gate fails.
+5. Never expose secrets in logs.
+6. Never commit real secrets.
+7. Never print secret values to verify them.
+8. Never put server secrets in browser code.
+9. Verify GitHub, Vercel and Supabase identities.
+10. Verify required variables/secrets by presence/configuration, not by revealing their values.
+11. Never automatically deploy SQL migrations.
+12. Deploy only Supabase Edge Functions automatically.
+13. Deploy the application through the approved Vercel/GitHub path.
+14. Use least privilege.
+15. Prefer short-lived credentials where supported.
+16. Do not use force push in the normal deployment workflow.
+17. Do not hide failed tests.
+18. Do not disable security gates to make deployment pass.
+19. Do not claim verification when verification was impossible.
+20. Always provide a rollback procedure.
+21. Always perform post-deployment smoke testing.
+22. Never claim absolute security.
+23. Never perform destructive production testing.
+24. Never invent stack-specific commands without inspecting the project.
+25. Generate commands and workflow files adapted to the actual SaaS.
+
+---
+
+# 45. FINAL OBJECTIVE
+
+The final generated system must behave like this:
+
+```text
+             GITHUB MAIN
+                  │
+                  ▼
+          ┌───────────────┐
+          │ IDENTIFY      │
+          │ PROJECTS      │
+          └───────┬───────┘
+                  ▼
+          ┌───────────────┐
+          │ SECURITY      │
+          │ GATES         │
+          └───────┬───────┘
+                  ▼
+          ┌───────────────┐
+          │ SECRETS / ENV │
+          │ VERIFICATION  │
+          └───────┬───────┘
+                  ▼
+          ┌───────────────┐
+          │ TEST + BUILD  │
+          └───────┬───────┘
+                  ▼
+             ALL PASS?
+              /      \
+            NO        YES
+            │          │
+          STOP         ▼
+                  ┌───────────┐
+                  │  VERCEL   │
+                  └─────┬─────┘
+                        │
+                        ▼
+                  ┌───────────┐
+                  │ SUPABASE  │
+                  │ EDGE FN   │
+                  └─────┬─────┘
+                        │
+                        ▼
+                  POST-DEPLOY
+                        │
+                        ▼
+                   SMOKE TEST
+                        │
+                  ┌─────┴─────┐
+                 FAIL        PASS
+                  │            │
+                STOP           ▼
+                         PRODUCTION
+```
+
+**END OF MASTER DEPLOYMENT WORKFLOW GENERATOR**

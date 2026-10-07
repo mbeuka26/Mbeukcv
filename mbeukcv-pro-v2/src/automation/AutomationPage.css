@@ -1,0 +1,55 @@
+.automation-block {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.automation-block:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.automation-block h3 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.automation-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.automation-note code {
+  background: #f0f0ee;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.job-results-list {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.job-result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #f8f8f6;
+  text-decoration: none !important;
+  color: var(--ink);
+  font-size: 0.85rem;
+}
+.job-result-item span {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+.job-result-item:hover {
+  border-color: var(--gold);
+}
