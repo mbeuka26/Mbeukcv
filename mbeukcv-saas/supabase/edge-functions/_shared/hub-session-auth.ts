@@ -4,7 +4,7 @@
  */
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getHubClient, toSafeHubError } from './hub-service.ts';
-import type { SaasProfile } from './saas-profile.ts';
+import { ensureSaasProfile, type SaasProfile } from './saas-profile.ts';
 
 export type HubAuthContext = {
   hub_user_id: string;
@@ -54,11 +54,35 @@ export async function requireHubAuth(
     throw new HubAuthError('Session Hub invalide ou expirée. Reconnectez-vous.', 401);
   }
 
-  const { data: profile, error } = await supabaseAdmin
+  let { data: profile, error } = await supabaseAdmin
     .from('profiles')
     .select('*')
     .eq('hub_user_id', hubUserId)
     .maybeSingle();
+
+  if (error || !profile) {
+    const bootstrapEmail = req.headers.get('X-Hub-Email')?.trim().toLowerCase();
+    if (bootstrapEmail) {
+      try {
+        const created = await ensureSaasProfile(supabaseAdmin, {
+          hub_user_id: hubUserId,
+          email: bootstrapEmail,
+          product_id: Deno.env.get('MBEUK_PRODUCT_ID') ?? undefined,
+        });
+        await supabaseAdmin.from('subscriptions').upsert({
+          user_id: created.id,
+          plan: 'trial',
+          status: 'blocked',
+          max_devices: 2,
+          updated_at: new Date().toISOString(),
+        });
+        profile = created as NonNullable<typeof profile>;
+        error = null;
+      } catch (bootstrapErr) {
+        console.warn('[requireHubAuth] bootstrap profile failed', bootstrapErr);
+      }
+    }
+  }
 
   if (error || !profile) {
     throw new HubAuthError('Profil métier SaaS introuvable pour ce compte Hub.', 404);

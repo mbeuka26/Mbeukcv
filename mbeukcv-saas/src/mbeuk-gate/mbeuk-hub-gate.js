@@ -79,6 +79,10 @@ export function authFeedback(error) {
   if (code === "INVALID_CREDENTIALS") return "Identifiant invalide. Vérifiez votre mot de passe.";
   if (code === "DEVICE_LIMIT_REACHED") return "Quota d’appareils atteint. Contactez le support.";
   if (code === "INVALID_PROMO") return "Code promo invalide. Vérifiez le code et réessayez.";
+  if (code === "HUB_SESSION_MISSING") {
+    return "Session expirée. Reconnectez-vous pour continuer vers le paiement.";
+  }
+  if (code === "HUB_AUTH" && error?.message) return error.message;
   return error?.message || NETWORK_ERROR_MESSAGE;
 }
 

@@ -3,8 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/browser';
-import { hubFunctionsUrl } from '@/lib/hubFunctionsUrl';
-import { hubAuthPost } from '@/lib/hubAuthFetch';
+import { hubAuthPost, hubSessionPost } from '@/lib/hubAuthFetch';
 
 type HubAuthPayload = {
   license_valid?: boolean;
@@ -58,13 +57,6 @@ export function LoginForm({ configured }: { configured: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-
-  function hubClient() {
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-    return import('@/mbeuk-gate/hub-gate-client.js').then(({ HubGateClient }) => (
-      new HubGateClient({ functionsUrl: hubFunctionsUrl(), anonKey: anon })
-    ));
-  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -179,17 +171,20 @@ export function LoginForm({ configured }: { configured: boolean }) {
     setPending(true);
     setError(null);
     try {
-      const client = await hubClient();
       const code = promo.trim();
       if (code) {
-        const result = await client.validatePromo(code);
+        const result = await hubSessionPost<{ valid?: boolean; message?: string }>('hub-validate-promo', {
+          promo_code: code,
+        });
         if (!result.valid) {
           setPending(false);
           setError(result.message || 'Code promo invalide. Vérifiez le code et réessayez.');
           return;
         }
       }
-      const checkout = await client.checkout({ promoCode: code || undefined });
+      const checkout = await hubSessionPost<{ checkout_url?: string }>('hub-checkout', {
+        promo_code: code || undefined,
+      });
       if (!checkout.checkout_url) {
         setPending(false);
         setError('Le paiement n’a pas renvoyé d’adresse.');
@@ -197,6 +192,18 @@ export function LoginForm({ configured }: { configured: boolean }) {
       }
       window.location.assign(checkout.checkout_url);
     } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+      if (code === 'HUB_SESSION_MISSING') {
+        setPending(false);
+        setError(message || 'Reconnectez-vous pour continuer vers le paiement.');
+        return;
+      }
+      if (message && !/failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(message)) {
+        setPending(false);
+        setError(message);
+        return;
+      }
       const { authFeedback } = await import('@/mbeuk-gate/mbeuk-hub-gate.js');
       setPending(false);
       setError(authFeedback(error));

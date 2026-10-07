@@ -29,7 +29,7 @@ function forwardHeaders(request: NextRequest): Record<string, string> | null {
     apikey: anon,
     Authorization: request.headers.get('Authorization') || `Bearer ${anon}`,
   };
-  for (const name of ['X-Hub-User-Id', 'X-Hub-Session-Token', 'X-Hub-Refresh-Token', 'Content-Type']) {
+  for (const name of ['X-Hub-User-Id', 'X-Hub-Session-Token', 'X-Hub-Refresh-Token', 'X-Hub-Email', 'Content-Type']) {
     const value = request.headers.get(name);
     if (value) headers[name] = value;
   }
