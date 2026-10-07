@@ -50,25 +50,33 @@ Deno.serve(async (req) => {
     const licenseValid = hubLogin.license?.valid === true;
 
     if (!licenseValid) {
-      const profile = await ensureSaasProfile(supabaseAdmin, {
-        hub_user_id: hubLogin.user_id,
-        email: hubLogin.email,
-        product_id: productId,
-      });
-      await supabaseAdmin.from('subscriptions').upsert({
-        user_id: profile.id,
-        plan: 'trial',
-        status: 'blocked',
-        max_devices: 2,
-        updated_at: new Date().toISOString(),
-      });
+      let saasUserId: string | undefined;
+      let profileFullName = hubLogin.email.split('@')[0];
+      try {
+        const profile = await ensureSaasProfile(supabaseAdmin, {
+          hub_user_id: hubLogin.user_id,
+          email: hubLogin.email,
+          product_id: productId,
+        });
+        saasUserId = profile.id;
+        profileFullName = profile.full_name;
+        await supabaseAdmin.from('subscriptions').upsert({
+          user_id: profile.id,
+          plan: 'trial',
+          status: 'blocked',
+          max_devices: 2,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (profileErr) {
+        console.error('[hub-auth-login] pending_license profile bootstrap failed', profileErr);
+      }
       return jsonResponse({
         ok: true,
         pending_license: true,
         hub_user_id: hubLogin.user_id,
-        saas_user_id: profile.id,
+        saas_user_id: saasUserId ?? null,
         email: hubLogin.email,
-        full_name: profile.full_name,
+        full_name: profileFullName,
         hub_session_token: hubLogin.session_token,
         hub_refresh_token: hubLogin.refresh_token,
         hub_expires_at: hubLogin.expires_at,
