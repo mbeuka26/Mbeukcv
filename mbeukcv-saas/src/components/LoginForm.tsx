@@ -4,6 +4,47 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/browser';
 import { hubFunctionsUrl } from '@/lib/hubFunctionsUrl';
+import { hubAuthPost } from '@/lib/hubAuthFetch';
+
+type HubAuthPayload = {
+  license_valid?: boolean;
+  hub_user_id?: string;
+  email?: string;
+  full_name?: string;
+  hub_session_token?: string;
+  hub_refresh_token?: string;
+  hub_expires_at?: string;
+  supabase_session?: { access_token?: string; refresh_token?: string } | null;
+};
+
+function persistHubSession(payload: HubAuthPayload) {
+  try {
+    localStorage.setItem(
+      'mbeuk_hub_gate_session',
+      JSON.stringify({
+        hubUserId: payload.hub_user_id,
+        hubSessionToken: payload.hub_session_token,
+        hubRefreshToken: payload.hub_refresh_token,
+        hubExpiresAt: payload.hub_expires_at,
+        supabaseAccessToken: payload.supabase_session?.access_token || null,
+        email: payload.email,
+        fullName: payload.full_name || '',
+      }),
+    );
+  } catch {
+    // Stockage indisponible (navigation privée) : la session Hub reste en mémoire côté API.
+  }
+}
+
+async function loadDeviceIdentity() {
+  try {
+    const { getDeviceIdentity } = await import('@/mbeuk-gate/device-fingerprint.js');
+    return getDeviceIdentity();
+  } catch {
+    const id = globalThis.crypto?.randomUUID?.() || String(Date.now());
+    return { device_identifier: id, device_id: id, local_device_id: id };
+  }
+}
 
 export function LoginForm({ configured }: { configured: boolean }) {
   const router = useRouter();
@@ -55,17 +96,21 @@ export function LoginForm({ configured }: { configured: boolean }) {
           return;
         }
       }
-      const { getDeviceIdentity } = await import('@/mbeuk-gate/device-fingerprint.js');
-      const client = await hubClient();
-      const device = await getDeviceIdentity();
-      const payload = mode === 'login'
-        ? await client.login({ email: trimmed, password }, device)
-        : await client.register({
+      const device = await loadDeviceIdentity();
+      const payload: HubAuthPayload = mode === 'login'
+        ? await hubAuthPost<HubAuthPayload>('hub-auth-login', {
+            email: trimmed,
+            password,
+            device_identifier: device.device_identifier,
+          })
+        : await hubAuthPost<HubAuthPayload>('hub-auth-register', {
             email: trimmed,
             password,
             full_name: fullName.trim(),
             phone: phone.trim(),
-          }, device);
+            device_identifier: device.device_identifier,
+          });
+      persistHubSession(payload);
       if (payload.license_valid !== true || !payload.supabase_session?.access_token) {
         setPending(false);
         setStep('license');
@@ -75,6 +120,12 @@ export function LoginForm({ configured }: { configured: boolean }) {
         return;
       }
       const bridge = payload.supabase_session;
+      if (!bridge?.access_token || !bridge.refresh_token) {
+        setPending(false);
+        setStep('license');
+        setInfo('Licence requise avant l’ouverture de l’espace.');
+        return;
+      }
       const { error: sessionError } = await createSupabaseBrowser().auth.setSession({
         access_token: bridge.access_token,
         refresh_token: bridge.refresh_token,
@@ -107,9 +158,15 @@ export function LoginForm({ configured }: { configured: boolean }) {
         return;
       }
       const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
-      if (mode === 'signup' && code === 'WRONG_PASSWORD') {
+      if (mode === 'signup' && (code === 'WRONG_PASSWORD' || code === 'EMAIL_ALREADY_REGISTERED')) {
         setPending(false);
         setError('Un compte existe déjà avec cet e-mail. Ouvrez une session ou touchez « Mot de passe oublié ».');
+        return;
+      }
+      const message = error instanceof Error ? error.message : '';
+      if (message && !/failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(message)) {
+        setPending(false);
+        setError(message);
         return;
       }
       const { authFeedback } = await import('@/mbeuk-gate/mbeuk-hub-gate.js');
@@ -237,10 +294,7 @@ export function LoginForm({ configured }: { configured: boolean }) {
             return;
           }
           try {
-            const { HubGateClient } = await import('@/mbeuk-gate/hub-gate-client.js');
-            const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-            const client = new HubGateClient({ functionsUrl: hubFunctionsUrl(), anonKey: anon });
-            await client.forgotPassword(trimmed);
+            await hubAuthPost('hub-auth-forgot-password', { email: trimmed });
             setPending(false);
             setInfo('Si un compte existe, un email de réinitialisation a été envoyé.');
           } catch (error) {
