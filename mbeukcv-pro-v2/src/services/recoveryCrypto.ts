@@ -73,8 +73,10 @@ export async function deriveRecoveryKey(password: string, salt: Uint8Array, iter
     false,
     ['deriveKey'],
   );
+  const saltBytes = new Uint8Array(new ArrayBuffer(salt.byteLength));
+  saltBytes.set(salt);
   return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: saltBytes, iterations, hash: 'SHA-256' },
     material,
     { name: 'AES-GCM', length: 256 },
     false,

@@ -16,7 +16,16 @@ interface GoogleTokenClient {
   requestAccessToken: (override?: { prompt?: string }) => void;
 }
 
+interface FileSystemDirectoryHandle {
+  queryPermission?(descriptor?: { mode?: 'read' | 'readwrite' }): Promise<PermissionState>;
+}
+
 interface Window {
+  showDirectoryPicker?(options?: {
+    mode?: 'read' | 'readwrite';
+    id?: string;
+    startIn?: 'desktop' | 'documents' | 'downloads' | 'music' | 'pictures' | 'videos';
+  }): Promise<FileSystemDirectoryHandle>;
   google?: {
     accounts?: {
       oauth2?: {

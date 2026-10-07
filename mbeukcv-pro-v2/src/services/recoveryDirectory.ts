@@ -94,7 +94,9 @@ export function directoryHandleFs(directory: FileSystemDirectoryHandle): Recover
     async write(name, data) {
       const handle = await directory.getFileHandle(name, { create: true });
       const writable = await handle.createWritable();
-      await writable.write(data);
+      const chunk = new Uint8Array(new ArrayBuffer(data.byteLength));
+      chunk.set(data);
+      await writable.write(chunk);
       await writable.close();
     },
     async remove(name) {
