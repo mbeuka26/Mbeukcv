@@ -143,13 +143,22 @@ Deno.serve(async (req) => {
     const license = await resolveHubLicense(hubLogin, hubEmail, device_identifier);
 
     if (!license.valid) {
+      const profile = await ensureSaasProfile(supabaseAdmin, {
+        hub_user_id: hubUserId,
+        email: hubEmail,
+        full_name,
+        phone,
+        product_id: productId,
+      });
+      await ensureMinimalSubscription(supabaseAdmin, profile.id);
       return jsonResponse({
         ok: true,
         pending_license: true,
         recovered_existing: recoveredExisting,
         hub_user_id: hubUserId,
+        saas_user_id: profile.id,
         email: hubEmail,
-        full_name: full_name || hubEmail.split('@')[0],
+        full_name: profile.full_name,
         hub_session_token: hubLogin.session_token,
         hub_refresh_token: hubLogin.refresh_token,
         hub_expires_at: hubLogin.expires_at,
