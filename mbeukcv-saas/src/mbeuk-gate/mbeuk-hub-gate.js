@@ -110,6 +110,25 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
+function isHubSessionInvalid(error) {
+  if (!(error instanceof HubGateError)) return false;
+  if (error.status === 401) return true;
+  if (error.code === "HUB_AUTH") return true;
+  if (error.status === 404) return true;
+  return false;
+}
+
+function isTransientHubError(error) {
+  if (isNetworkError(error)) return true;
+  if (!(error instanceof HubGateError)) return false;
+  if (error.status >= 502 || error.status === 429) return true;
+  return error.code === "TIMEOUT" || error.code === "HUB_UPSTREAM_UNREACHABLE";
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function node(tag, attributes = {}, text = "") {
   const element = document.createElement(tag);
   for (const [name, value] of Object.entries(attributes)) {
@@ -185,8 +204,11 @@ export class MbeukHubGate extends EventTarget {
     if (this.accessAllowed(status)) {
       this.overlay?.remove();
       this.overlay = null;
-    } else if (status === GateStatus.BLOCKED) {
+    } else if (status === GateStatus.BLOCKED && this.config.authMode === "universal") {
       queueMicrotask(() => this.mountAccessBarrier());
+    } else if (status === GateStatus.ANONYMOUS || status === GateStatus.ERROR) {
+      this.overlay?.remove();
+      this.overlay = null;
     }
   }
 
@@ -218,7 +240,18 @@ export class MbeukHubGate extends EventTarget {
     }
 
     try {
-      await this.refresh();
+      try {
+        await this.client.refreshHubSessionIfNeeded();
+      } catch (refreshErr) {
+        if (isHubSessionInvalid(refreshErr)) {
+          this.client.clearSession();
+          this.setState(GateStatus.ANONYMOUS, { error: null });
+          if (this.config.authMode === "universal") this.mountUniversalAuth();
+          return this.snapshot();
+        }
+        console.warn("[MbeukHubGate] hub session refresh skipped", refreshErr);
+      }
+      await this.refreshWithRetry();
       if (this.isPaymentAbort()) {
         this.clearPaymentQuery();
         this.setState(GateStatus.BLOCKED, {
@@ -234,28 +267,76 @@ export class MbeukHubGate extends EventTarget {
         await this.pollPayment();
       }
     } catch (error) {
-      if (error instanceof HubGateError && error.status === 401) {
+      if (isHubSessionInvalid(error)) {
         this.client.clearSession();
         this.setState(GateStatus.ANONYMOUS, { error: null });
         if (this.config.authMode === "universal") this.mountUniversalAuth();
-      } else {
+      } else if (this.config.authMode === "existing") {
+        this.overlay?.remove();
+        this.setState(GateStatus.ERROR, { error });
+        console.warn("[MbeukHubGate] boot non bloquant (auth existante)", error);
+      } else if (isTransientHubError(error)) {
         this.setState(GateStatus.ERROR, { error });
         this.mountNetworkBarrier(error);
+      } else {
+        this.overlay?.remove();
+        this.setState(GateStatus.ERROR, { error });
       }
     }
     return this.snapshot();
   }
 
+  async refreshWithRetry(attempts = 3) {
+    let lastError;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        return await this.refresh();
+      } catch (error) {
+        lastError = error;
+        if (!isTransientHubError(error) || attempt === attempts - 1) throw error;
+        await sleep(350 * (attempt + 1));
+      }
+    }
+    throw lastError;
+  }
+
   async refresh() {
-    const [me, license] = await Promise.all([
-      this.client.me(),
-      this.client.licenseStatus(this.device),
-    ]);
-    this.profile = me.profile || {
-      full_name: this.client.session?.fullName,
-      email: this.client.session?.email,
-    };
-    this.entitlement = normalizeEntitlement(license);
+    let me = null;
+    let license = null;
+    let meError = null;
+    let licenseError = null;
+    try {
+      me = await this.client.me();
+    } catch (error) {
+      meError = error;
+    }
+    try {
+      license = await this.client.licenseStatus(this.device);
+    } catch (error) {
+      licenseError = error;
+    }
+    if (meError && licenseError) throw meError;
+    if (meError && isHubSessionInvalid(meError)) throw meError;
+
+    if (me?.profile || this.client.session) {
+      this.profile = me?.profile || {
+        full_name: this.client.session?.fullName,
+        email: this.client.session?.email,
+      };
+    }
+    const entitlementPayload = license
+      || (me?.subscription ? { subscription: me.subscription, valid: me.subscription?.status === "active" } : null);
+    if (entitlementPayload) {
+      this.entitlement = normalizeEntitlement(entitlementPayload);
+    } else if (meError || licenseError) {
+      throw meError || licenseError;
+    } else {
+      this.entitlement = {
+        status: GateStatus.BLOCKED,
+        label: "Accès requis",
+        reason: "NO_ENTITLEMENT",
+      };
+    }
     this.setState(this.entitlement.status);
     return this.snapshot();
   }
@@ -701,6 +782,10 @@ export class MbeukHubGate extends EventTarget {
   }
 
   mountNetworkBarrier(error, target = document.body) {
+    if (this.config.authMode === "existing") {
+      console.warn("[MbeukHubGate] erreur réseau non affichée en plein écran (auth existante)", error);
+      return error;
+    }
     this.overlay?.remove();
     const overlay = node("section", {
       className: this.overlayClass(),
@@ -709,10 +794,22 @@ export class MbeukHubGate extends EventTarget {
       "aria-labelledby": "mbeuk-network-title",
     });
     const card = node("div", { className: "mbeuk-gate__card" });
+    const message = node(
+      "p",
+      { className: "mbeuk-gate__intro mbeuk-gate__feedback--error" },
+      authFeedback(error),
+    );
+    const retry = node("button", { type: "button", className: "mbeuk-gate__primary mbeuk-gate__cta" }, "Réessayer");
+    retry.addEventListener("click", () => {
+      overlay.remove();
+      this.overlay = null;
+      void this.boot();
+    });
     card.append(
       node("p", { className: "mbeuk-gate__eyebrow" }, this.config.productName || "Application SaaS"),
       node("h1", { id: "mbeuk-network-title" }, "Connexion interrompue"),
-      node("p", { className: "mbeuk-gate__intro mbeuk-gate__feedback--error" }, NETWORK_ERROR_MESSAGE),
+      message,
+      retry,
     );
     overlay.append(this.mechanicalScene(), card);
     target.append(overlay);
