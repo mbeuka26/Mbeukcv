@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import '@/mbeuk-gate/mbeuk-hub-gate.css';
+import { hubFunctionsUrl } from '@/lib/hubFunctionsUrl';
 
 export function HubGateBoot() {
   useEffect(() => {
@@ -20,7 +21,7 @@ export function HubGateBoot() {
         allowTrial: false,
         protectedRoot: '#mbeuk-app',
         headerTarget: '#hub-user-status',
-        functionsUrl: `${url}/functions/v1`,
+        functionsUrl: hubFunctionsUrl(),
         anonKey: anon,
       });
       if (!alive) return;

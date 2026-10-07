@@ -55,13 +55,18 @@ async function ensureMinimalSubscription(
   });
 }
 
-function hubErrorResponse(safe: ReturnType<typeof toSafeHubError>, step: string, status?: number) {
+function hubErrorResponse(
+  safe: ReturnType<typeof toSafeHubError>,
+  step: string,
+  status?: number,
+  req?: Request,
+) {
   return jsonResponse({
     error: safe.message,
     code: safe.code,
     step,
     hub_details: safe.details ?? undefined,
-  }, status ?? safe.status ?? 502);
+  }, status ?? safe.status ?? 502, req);
 }
 
 Deno.serve(async (req) => {
@@ -111,15 +116,26 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: hubSchemaAccessTypeMessage(), code: 'HUB_SCHEMA_OUTDATED' }, 503);
       }
       if (!isDuplicateHubAccount(registerErr)) {
-        return hubErrorResponse(toSafeHubError(registerErr), 'hub_register_or_login');
+        return hubErrorResponse(toSafeHubError(registerErr), 'hub_register_or_login', undefined, req);
       }
       recoveredExisting = true;
-      hubLogin = await hubLoginWithDeviceFallback(hub, {
-        email: emailNorm,
-        password: passwordStr,
-        product_id: productId,
-        device_identifier,
-      });
+      try {
+        hubLogin = await hubLoginWithDeviceFallback(hub, {
+          email: emailNorm,
+          password: passwordStr,
+          product_id: productId,
+          device_identifier,
+        });
+      } catch (loginErr) {
+        const safe = toSafeHubError(loginErr);
+        if (safe.code === 'WRONG_PASSWORD' || safe.code === 'INVALID_CREDENTIALS') {
+          return jsonResponse({
+            error: 'Un compte existe déjà avec cet e-mail. Connectez-vous ou utilisez « Mot de passe oublié ».',
+            code: 'EMAIL_ALREADY_REGISTERED',
+          }, 409, req);
+        }
+        return hubErrorResponse(safe, 'hub_register_login_existing', safe.status, req);
+      }
       hubUserId = hubLogin.user_id;
       hubEmail = hubLogin.email;
     }

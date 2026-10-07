@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/browser';
+import { hubFunctionsUrl } from '@/lib/hubFunctionsUrl';
 
 export function LoginForm({ configured }: { configured: boolean }) {
   const router = useRouter();
@@ -18,10 +19,9 @@ export function LoginForm({ configured }: { configured: boolean }) {
   const [pending, setPending] = useState(false);
 
   function hubClient() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
     const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
     return import('@/mbeuk-gate/hub-gate-client.js').then(({ HubGateClient }) => (
-      new HubGateClient({ functionsUrl: `${url}/functions/v1`, anonKey: anon })
+      new HubGateClient({ functionsUrl: hubFunctionsUrl(), anonKey: anon })
     ));
   }
 
@@ -104,6 +104,12 @@ export function LoginForm({ configured }: { configured: boolean }) {
       if (status === 404) {
         setPending(false);
         setError('La création de compte passe par le Hub. Les fonctions d’authentification ne sont pas encore déployées.');
+        return;
+      }
+      const code = typeof error === 'object' && error && 'code' in error ? String(error.code) : '';
+      if (mode === 'signup' && code === 'WRONG_PASSWORD') {
+        setPending(false);
+        setError('Un compte existe déjà avec cet e-mail. Ouvrez une session ou touchez « Mot de passe oublié ».');
         return;
       }
       const { authFeedback } = await import('@/mbeuk-gate/mbeuk-hub-gate.js');
@@ -232,9 +238,8 @@ export function LoginForm({ configured }: { configured: boolean }) {
           }
           try {
             const { HubGateClient } = await import('@/mbeuk-gate/hub-gate-client.js');
-            const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
             const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-            const client = new HubGateClient({ functionsUrl: `${url}/functions/v1`, anonKey: anon });
+            const client = new HubGateClient({ functionsUrl: hubFunctionsUrl(), anonKey: anon });
             await client.forgotPassword(trimmed);
             setPending(false);
             setInfo('Si un compte existe, un email de réinitialisation a été envoyé.');
