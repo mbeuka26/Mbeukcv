@@ -68,11 +68,26 @@ export class HubGateClient {
     };
   }
 
+  usesSameOriginProxy() {
+    try {
+      if (typeof window === "undefined") return false;
+      const base = this.functionsUrl.replace(/\/+$/, "");
+      return base === `${window.location.origin}/api/hub`;
+    } catch {
+      return false;
+    }
+  }
+
   async request(functionName, body = {}, { authenticated = true, method = "POST" } = {}) {
+    const viaProxy = this.usesSameOriginProxy();
     const headers = {
-      apikey: this.anonKey,
-      Authorization: `Bearer ${this.session?.supabaseAccessToken || this.anonKey}`,
       "Content-Type": "application/json",
+      ...(viaProxy
+        ? {}
+        : {
+            apikey: this.anonKey,
+            Authorization: `Bearer ${this.session?.supabaseAccessToken || this.anonKey}`,
+          }),
       ...(authenticated ? this.sessionHeaders() : {}),
     };
     let response;

@@ -31,14 +31,18 @@ export async function getDeviceFingerprint() {
     Intl.DateTimeFormat().resolvedOptions().timeZone || "",
   ].join("|");
 
-  if (!globalThis.crypto?.subtle) return stableSignals;
-  const digest = await globalThis.crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(stableSignals),
-  );
-  return [...new Uint8Array(digest)]
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("");
+  try {
+    if (!globalThis.crypto?.subtle) return stableSignals;
+    const digest = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(stableSignals),
+    );
+    return [...new Uint8Array(digest)]
+      .map((value) => value.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    return getLocalDeviceId();
+  }
 }
 
 export async function getDeviceIdentity() {
