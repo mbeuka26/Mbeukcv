@@ -1,5 +1,4 @@
 // hub-auth-register — Inscription identité Hub (autorité) + profil métier SaaS local.
-import { corsHeaders } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
 import {
   ensureHubConfigured,
@@ -13,7 +12,7 @@ import {
 } from '../_shared/hub-service.ts';
 import { ensureSaasProfile, createBridgeSupabaseSession, ensureBridgeConfigured } from '../_shared/saas-profile.ts';
 import { applyHubLicenseToUser } from '../_shared/subscription-sync.ts';
-import { assertServiceRoleConfigured, jsonResponse } from '../_shared/edge-response.ts';
+import { assertServiceRoleConfigured, jsonResponse, preflightResponse } from '../_shared/edge-response.ts';
 import { createSupabaseAdmin } from '../_shared/supabase-env.ts';
 import { hubLoginWithDeviceFallback } from '../_shared/hub-auth-helpers.ts';
 
@@ -66,7 +65,7 @@ function hubErrorResponse(safe: ReturnType<typeof toSafeHubError>, step: string,
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return preflightResponse(req);
   try {
     ensureHubConfigured();
     ensureBridgeConfigured();
