@@ -2,11 +2,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createSupabaseAdmin } from '../_shared/supabase-env.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { preflightResponse } from '../_shared/edge-response.ts';
 import { ensureHubConfigured, getHubClient, toSafeHubError } from '../_shared/hub-service.ts';
 import { createBridgeSupabaseSession } from '../_shared/saas-profile.ts';
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return preflightResponse(req);
   try {
     ensureHubConfigured();
     const supabaseAdmin = createSupabaseAdmin();

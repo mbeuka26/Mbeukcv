@@ -34,6 +34,7 @@ export const optionalSecrets = [
   { name: 'CREDIT_GRANT_SECRET', min: 16, targets: ['vercel'] },
   { name: 'MBEUK_HUB_BASE_URL', min: 12, targets: ['vercel'], format: 'https-url' },
   { name: 'MBEUK_ENVIRONMENT', min: 3, targets: ['vercel', 'supabase'] },
+  { name: 'PRODUCTION_APP_URL', min: 12, targets: ['supabase'], supabaseName: 'APP_URL', format: 'https-url' },
   { name: 'MBEUK_HUB_PRODUCT_CLAUDE_10', min: 8, targets: ['vercel'] },
   { name: 'MBEUK_HUB_PRODUCT_CLAUDE_30', min: 8, targets: ['vercel'] },
   { name: 'MBEUK_HUB_PRODUCT_CLAUDE_80', min: 8, targets: ['vercel'] },

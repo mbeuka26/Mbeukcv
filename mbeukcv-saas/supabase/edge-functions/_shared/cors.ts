@@ -10,14 +10,28 @@ function parseAllowedOrigins(): string[] {
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-/** En-têtes CORS par défaut — restreint à APP_URL en production si défini. */
+function isAllowedProductionOrigin(origin: string): boolean {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'https:') return false;
+    if (hostname.endsWith('.vercel.app')) return true;
+    if (hostname === 'mbeuk.us' || hostname === 'www.mbeuk.us') return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+const DEFAULT_PRODUCTION_ORIGIN = 'https://cvpro-swart.vercel.app';
+
+/** En-têtes CORS par défaut — APP_URL en production, sinon alias Vercel connu. */
 export const corsHeaders: Record<string, string> = (() => {
   const allowed = parseAllowedOrigins();
   const isProd = Deno.env.get('MBEUK_ENVIRONMENT') === 'production';
-  const origin = allowed.length ? allowed[0] : (isProd ? 'null' : '*');
+  const origin = allowed.length ? allowed[0] : (isProd ? DEFAULT_PRODUCTION_ORIGIN : '*');
   return {
     'Access-Control-Allow-Origin': origin,
-    ...(allowed.length ? { Vary: 'Origin' } : {}),
+    Vary: 'Origin',
     ...BASE_HEADERS,
   };
 })();
@@ -29,8 +43,11 @@ export function corsHeadersFor(req: Request): Record<string, string> {
   const isProd = Deno.env.get('MBEUK_ENVIRONMENT') === 'production';
 
   if (!allowed.length) {
+    if (isProd && origin && isAllowedProductionOrigin(origin)) {
+      return { 'Access-Control-Allow-Origin': origin, Vary: 'Origin', ...BASE_HEADERS };
+    }
     return isProd
-      ? { 'Access-Control-Allow-Origin': 'null', Vary: 'Origin', ...BASE_HEADERS }
+      ? { 'Access-Control-Allow-Origin': DEFAULT_PRODUCTION_ORIGIN, Vary: 'Origin', ...BASE_HEADERS }
       : { 'Access-Control-Allow-Origin': '*', ...BASE_HEADERS };
   }
 

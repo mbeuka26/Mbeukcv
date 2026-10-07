@@ -1,6 +1,7 @@
 ﻿// hub-validate-promo — Validation code influenceur via Hub Central (session Hub requise).
 import { createSupabaseAdmin } from '../_shared/supabase-env.ts';
 import { corsHeaders } from '../_shared/cors.ts';
+import { preflightResponse } from '../_shared/edge-response.ts';
 import { checkRateLimit } from '../_shared/rate-limit.ts';
 import {
   ensureHubConfigured,
@@ -11,7 +12,7 @@ import {
 import { HubAuthError, requireHubAuth, saasUserId } from '../_shared/hub-session-auth.ts';
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return preflightResponse(req);
   try {
     ensureHubConfigured();
     const supabaseAdmin = createSupabaseAdmin();

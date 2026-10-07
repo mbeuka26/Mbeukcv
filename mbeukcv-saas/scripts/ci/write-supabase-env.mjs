@@ -29,5 +29,14 @@ for (const entry of [...requiredSecrets, ...optionalSecrets]) {
   console.log(`OK — secret Edge préparé : ${name}`);
 }
 
+const appUrl = readSecret('PRODUCTION_APP_URL');
+if (appUrl) {
+  lines.push(`APP_URL=${appUrl}`);
+  console.log('OK — secret Edge préparé : APP_URL');
+} else if (readSecret('MBEUK_ENVIRONMENT') === 'production') {
+  lines.push('APP_URL=https://cvpro-swart.vercel.app');
+  console.log('OK — secret Edge préparé : APP_URL (alias production par défaut)');
+}
+
 writeFileSync(target, `${lines.join('\n')}\n`, { mode: 0o600 });
 chmodSync(target, 0o600);
