@@ -70,6 +70,12 @@ export function authFeedback(error) {
   }
   if (code === "ACCOUNT_NOT_FOUND") return "Vérifiez votre email et mot de passe.";
   if (code === "WRONG_PASSWORD") return "Vérifiez votre mot de passe.";
+  if (code === "EMAIL_ALREADY_REGISTERED") {
+    return "Un compte existe déjà avec cet e-mail. Ouvrez une session ou utilisez « Mot de passe oublié ».";
+  }
+  if (code === "HUB_UPSTREAM_UNREACHABLE") {
+    return "Le serveur d’authentification est injoignable. Réessayez dans un instant.";
+  }
   if (code === "INVALID_CREDENTIALS") return "Identifiant invalide. Vérifiez votre mot de passe.";
   if (code === "DEVICE_LIMIT_REACHED") return "Quota d’appareils atteint. Contactez le support.";
   if (code === "INVALID_PROMO") return "Code promo invalide. Vérifiez le code et réessayez.";
