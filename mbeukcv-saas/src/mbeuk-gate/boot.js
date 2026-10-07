@@ -7,7 +7,10 @@ import { ensureMbeukPwa } from "./pwa.js";
 import { runKitHealthCheck } from "./health-check.js";
 import "./mbeuk-hub-gate.css";
 
+let sharedGate = null;
+
 export async function bootMbeukHubGate(options = {}) {
+  if (sharedGate) return sharedGate;
   const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
   const functionsUrl = options.functionsUrl
     || `${options.supabaseUrl || env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ""}/functions/v1`;
@@ -44,6 +47,7 @@ export async function bootMbeukHubGate(options = {}) {
     skipLiveHub: options.skipLiveHub === true,
     silent: options.silentHealth === true,
   });
+  sharedGate = gate;
   return gate;
 }
 

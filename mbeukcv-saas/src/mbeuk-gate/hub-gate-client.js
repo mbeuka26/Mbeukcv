@@ -61,11 +61,38 @@ export class HubGateClient {
   sessionHeaders() {
     const session = this.session;
     if (!session) return {};
-    return {
+    const headers = {
       "X-Hub-User-Id": session.hubUserId,
       "X-Hub-Session-Token": session.hubSessionToken,
       "X-Hub-Refresh-Token": session.hubRefreshToken,
     };
+    if (session.email) headers["X-Hub-Email"] = session.email;
+    return headers;
+  }
+
+  /** Renouvelle les jetons Hub stockés (évite les 401 au rechargement de page). */
+  async refreshHubSessionIfNeeded() {
+    const session = this.session;
+    if (!session?.hubRefreshToken || !session.hubUserId || !session.email) return null;
+    const payload = await this.request(
+      "hub-auth-refresh",
+      {
+        refresh_token: session.hubRefreshToken,
+        hub_user_id: session.hubUserId,
+        email: session.email,
+      },
+      { authenticated: false },
+    );
+    this.saveSession({
+      hub_user_id: session.hubUserId,
+      email: session.email,
+      full_name: session.fullName,
+      hub_session_token: payload.hub_session_token,
+      hub_refresh_token: payload.hub_refresh_token,
+      hub_expires_at: payload.hub_expires_at,
+      supabase_session: payload.supabase_session,
+    });
+    return payload;
   }
 
   usesSameOriginProxy() {
