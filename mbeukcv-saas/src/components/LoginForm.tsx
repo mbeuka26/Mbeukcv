@@ -199,6 +199,11 @@ export function LoginForm({ configured }: { configured: boolean }) {
         setError(message || 'Reconnectez-vous pour continuer vers le paiement.');
         return;
       }
+      if (code === 'HUB_AUTH' && /profil métier/i.test(message)) {
+        setPending(false);
+        setError('Votre compte Hub est créé, mais l’espace métier n’est pas encore prêt. Attendez une minute, reconnectez-vous, puis retentez le paiement.');
+        return;
+      }
       if (message && !/failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(message)) {
         setPending(false);
         setError(message);
