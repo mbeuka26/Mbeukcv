@@ -137,7 +137,20 @@ jobs:
           rm -rf supabase/functions
           mkdir -p supabase/functions
           cp -a supabase/edge-functions/. supabase/functions/
-          supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"
+          names=(
+            hub-auth-login hub-auth-register hub-auth-logout hub-auth-forgot-password hub-auth-refresh
+            hub-me hub-checkout hub-license-status hub-sync-license hub-diagnostics hub-validate-promo
+            validate-trial
+          )
+          for fn in "${names[@]}"; do
+            echo "Déploiement $fn"
+            if ! supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" >"/tmp/${fn}.log" 2>&1; then
+              sed -E 's/(eyJ[A-Za-z0-9._-]{20,})/[jwt]/g; s/(sbp_[A-Za-z0-9]+)/[token]/g' "/tmp/${fn}.log" | tail -n 20 | while IFS= read -r line; do
+                echo "::error title=Edge ${fn}::${line}"
+              done
+              exit 1
+            fi
+          done
 
       - name: Secrets et fonctions Edge de MbeukCV Pro
         env:

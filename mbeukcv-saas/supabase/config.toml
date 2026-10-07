@@ -1,0 +1,3 @@
+# Fichier local exigé par la CLI Supabase.
+# Le projet distant est celui du secret SUPABASE_PROJECT_REF.
+project_id = "mbeukcv-saas"
