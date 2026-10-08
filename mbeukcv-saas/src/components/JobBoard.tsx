@@ -29,6 +29,7 @@ export interface JobView {
 
 export function JobBoard({
   jobs,
+  catalogStats,
   prefill,
   cvReady,
   cvLabel,
@@ -36,6 +37,7 @@ export function JobBoard({
   matchReady,
 }: {
   jobs: JobView[];
+  catalogStats?: { jsearch: number; local: number; rapidConfigured: boolean };
   prefill: { fullName: string; email: string; phone: string };
   cvReady: boolean;
   cvLabel: string;
@@ -166,6 +168,18 @@ export function JobBoard({
           </button>
         </div>
       </div>
+      {catalogStats && (
+        <p className="mb-4 text-sm text-muted">
+          Catalogue actif : {catalogStats.jsearch} offre{catalogStats.jsearch > 1 ? 's' : ''} JSearch (international / RapidAPI),{' '}
+          {catalogStats.local} via sites publics (scraping).
+          {!catalogStats.rapidConfigured && (
+            <span className="text-[#8d3d24]"> La clé RapidAPI (JSearch) n’est pas configurée sur le serveur — seul le scraping alimente la base.</span>
+          )}
+          {catalogStats.rapidConfigured && catalogStats.jsearch === 0 && (
+            <span> Utilisez « Actualiser offres internationales » ou attendez la collecte automatique (05:00, Douala).</span>
+          )}
+        </p>
+      )}
       {matchReady && scope === 'profil' && (
         <p className="mb-4 text-sm text-muted">
           La recherche lit la base centrale et ne consomme pas de crédit RapidAPI.

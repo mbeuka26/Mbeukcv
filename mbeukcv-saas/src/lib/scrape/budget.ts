@@ -93,3 +93,23 @@ export async function commitRotation(client: SupabaseClient, day: string, attemp
   const used = state.month === month ? state.used : 0;
   await saveState(client, { month, used: used + attempted, day });
 }
+
+/** Réserve des appels JSearch manuels (hors blocage « déjà lancé aujourd’hui » du cron). */
+export async function reserveJSearchCalls(
+  client: SupabaseClient,
+  calls: number,
+  now = new Date(),
+): Promise<{ ok: true; day: string; used: number; remaining: number } | { ok: false; error: string }> {
+  if (calls <= 0) return { ok: false, error: 'Aucun appel JSearch demandé.' };
+  const day = dayInDouala(now);
+  const month = day.slice(0, 7);
+  const state = await loadState(client);
+  const used = state.month === month ? state.used : 0;
+  if (used + calls > JSEARCH_MONTHLY_CAP) {
+    return {
+      ok: false,
+      error: `Plafond mensuel JSearch atteint (${used}/${JSEARCH_MONTHLY_CAP}). Réessayez le mois prochain ou augmentez le plafond côté code.`,
+    };
+  }
+  return { ok: true, day, used, remaining: JSEARCH_MONTHLY_CAP - used - calls };
+}

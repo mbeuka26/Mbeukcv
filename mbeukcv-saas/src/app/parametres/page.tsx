@@ -33,6 +33,14 @@ export default async function SettingsPage() {
       <p className="mb-6 mt-2 max-w-2xl text-sm text-muted">
         Les offres et les candidatures restent dans la base centrale. Chaque compte garde son CV, sa clé Claude et ses crédits Claude.
       </p>
+      <div className="sheet mb-6 space-y-2 p-4 text-sm text-muted">
+        <p className="font-serif text-lg text-ink">Services plateforme (hébergement)</p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>RapidAPI / JSearch (offres internationales) : {process.env.RAPIDAPI_KEY?.trim() ? 'configuré' : 'non configuré sur Vercel'}</li>
+          <li>Claude (secours si vous n’avez pas de clé perso) : {process.env.ANTHROPIC_API_KEY?.trim() ? 'configuré' : 'non configuré'}</li>
+          <li>Brevo (envoi candidatures) : {process.env.BREVO_API_KEY?.trim() && process.env.BREVO_FROM_EMAIL?.trim() ? 'configuré' : 'incomplet'} — si l’envoi échoue pour IP, désactivez la restriction IP dans Brevo.</li>
+        </ul>
+      </div>
       <CreditPanel
         claude={credits.claude}
         claudeFree={credits.claudeFree}
