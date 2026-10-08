@@ -72,7 +72,10 @@ export async function scrapeJSearch(
   const notes: string[] = [];
   for (const item of queries) {
     try {
-      const found = await searchJSearch(apiKey, item.query);
+      const found = await searchJSearch(apiKey, item.query, {
+        remoteOnly: item.remoteOnly,
+        country: item.country,
+      });
       drafts.push(...found);
       notes.push(found.length === 0 ? `${item.label} : aucune offre.` : `${item.label} : ${found.length} offre(s).`);
     } catch (error) {

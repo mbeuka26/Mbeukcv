@@ -33,7 +33,7 @@ export function SideNav() {
         );
       })}
       <a
-        href="/pro/index.html"
+        href="/pro/"
         className="mt-2 block whitespace-nowrap border-t border-white/15 px-3 py-2 text-sm text-[#f6f1ea] hover:bg-white/10"
       >
         MbeukCV Pro

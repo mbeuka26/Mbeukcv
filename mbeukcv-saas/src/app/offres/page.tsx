@@ -2,6 +2,7 @@ import { unconfiguredScreen } from '@/components/Unconfigured';
 import { Shell } from '@/components/Shell';
 import { JobBoard, type JobView } from '@/components/JobBoard';
 import { ensureProfile, readPublicProfile, requireUser } from '@/lib/auth';
+import { deriveJobMeta, educationLabel } from '@/lib/offers/jobMeta';
 import { scoreOffer } from '@/lib/matching';
 import { offerMatchesProfile, profileTerms } from '@/lib/profileMatch';
 import { centralCatalog } from '@/lib/supabase/factory';
@@ -55,6 +56,12 @@ export default async function OffersPage({ searchParams }: { searchParams: { vue
         { skills: cv.skills, yearsExperience: cv.yearsExperience, location: cv.location },
         { skills: row.skills ?? [], description: row.description, location: row.location },
       ) : null;
+      const meta = deriveJobMeta({
+        location: row.location,
+        description: row.description,
+        title: row.title,
+        source: row.source,
+      });
       return {
         id: row.id,
         title: row.title,
@@ -70,6 +77,11 @@ export default async function OffersPage({ searchParams }: { searchParams: { vue
         score: scored?.score ?? null,
         scoreNote: hasCv ? scored?.note ?? null : 'Enregistrez un CV pour calculer la correspondance.',
         relevant: offerMatchesProfile(terms, { title: row.title, description: row.description, skills: row.skills ?? [] }),
+        country: meta.country,
+        isInternational: meta.isInternational,
+        minExperienceYears: meta.minExperienceYears,
+        educationLevel: meta.educationLevel,
+        educationLabel: educationLabel(meta.educationLevel),
       };
     });
     jobs.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));

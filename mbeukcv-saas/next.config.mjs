@@ -5,6 +5,14 @@ const nextConfig = {
   async redirects() {
     return [{ source: '/pro', destination: '/pro/index.html', permanent: false }];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/pro/:path((?!.*\\.).*)',
+        destination: '/pro/index.html',
+      },
+    ];
+  },
   async headers() {
     return [
       {

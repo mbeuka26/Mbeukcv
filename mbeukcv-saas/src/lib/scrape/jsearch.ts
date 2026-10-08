@@ -13,11 +13,17 @@ interface JSearchJob {
   job_posted_at_datetime_utc?: string;
 }
 
-export async function searchJSearch(apiKey: string, query: string): Promise<ScrapedDraft[]> {
+export async function searchJSearch(
+  apiKey: string,
+  query: string,
+  options: { remoteOnly?: boolean; country?: string } = {},
+): Promise<ScrapedDraft[]> {
   const url = new URL('https://jsearch.p.rapidapi.com/search-v2');
   url.searchParams.set('query', query);
   url.searchParams.set('num_pages', '1');
-  url.searchParams.set('date_posted', 'week');
+  url.searchParams.set('date_posted', 'month');
+  if (options.remoteOnly) url.searchParams.set('remote_jobs_only', 'true');
+  if (options.country?.trim()) url.searchParams.set('country', options.country.trim().toLowerCase());
 
   const response = await fetch(url, {
     headers: {
