@@ -2,6 +2,7 @@ import { unconfiguredScreen } from '@/components/Unconfigured';
 import { Shell } from '@/components/Shell';
 import { CreditPanel } from '@/components/CreditPanel';
 import { AppearancePanel } from '@/components/AppearancePanel';
+import { InstallAppPanel } from '@/components/InstallAppPanel';
 import { SettingsForm } from '@/components/SettingsForm';
 import { readServerThemeId } from '@/lib/appearance/server';
 import { ensureProfile, requireUser } from '@/lib/auth';
@@ -57,6 +58,9 @@ export default async function SettingsPage() {
         <p className="text-sm text-[#8d3d24]">{loadError}</p>
       ) : (
         <div className="space-y-6">
+          <div id="installer">
+            <InstallAppPanel />
+          </div>
           <AppearancePanel initialThemeId={themeId} />
           <SettingsForm initial={initial} />
         </div>

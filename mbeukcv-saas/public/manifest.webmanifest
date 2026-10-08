@@ -1,14 +1,17 @@
 {
+  "id": "/?source=pwa",
   "name": "MbeukCV",
   "short_name": "MbeukCV",
   "description": "CV, correspondance avec les offres et candidatures.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "any",
   "background_color": "#f3eee6",
   "theme_color": "#26211d",
   "lang": "fr",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/icons/mbeuk-icon-192.png",
@@ -20,7 +23,13 @@
       "src": "/icons/mbeuk-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/mbeuk-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

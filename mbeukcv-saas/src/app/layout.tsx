@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Source_Sans_3, Source_Serif_4 } from 'next/font/google';
 import { HubGateBoot } from '@/components/HubGateBoot';
+import { PwaBootstrap } from '@/components/PwaBootstrap';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
 
@@ -13,13 +14,20 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   applicationName: 'MbeukCV',
   appleWebApp: { capable: true, title: 'MbeukCV' },
-  icons: { apple: '/apple-touch-icon.png' },
+  icons: {
+    apple: '/apple-touch-icon.png',
+    icon: [
+      { url: '/icons/mbeuk-icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/mbeuk-icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
       <body className={`${sans.variable} ${serif.variable} font-sans`}>
+        <PwaBootstrap />
         <ThemeProvider />
         <HubGateBoot />
         {children}

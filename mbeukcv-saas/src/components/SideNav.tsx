@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { usePwaInstall } from '@/hooks/usePwaInstall';
 
 const LINKS = [
   { href: '/accueil', label: 'Accueil' },
@@ -17,6 +18,12 @@ const LINKS = [
 
 export function SideNav() {
   const pathname = usePathname();
+  const { canPrompt, installed, install } = usePwaInstall();
+
+  async function onInstall() {
+    await install();
+  }
+
   return (
     <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:block md:px-3 md:pb-0">
       {LINKS.map((link) => {
@@ -34,6 +41,23 @@ export function SideNav() {
           </Link>
         );
       })}
+      {!installed && (
+        <Link
+          href="/parametres#installer"
+          className="mt-2 block whitespace-nowrap rounded-lg px-3 py-2 text-sm transition duration-150 hover:bg-white/10 [color:var(--color-sidebar-text)]"
+        >
+          {canPrompt ? 'Installer l’app' : 'Installer sur PC'}
+        </Link>
+      )}
+      {canPrompt && (
+        <button
+          type="button"
+          className="mx-3 mb-1 block w-[calc(100%-1.5rem)] rounded-lg bg-white/15 px-3 py-2 text-left text-sm font-semibold transition hover:bg-white/25 [color:var(--color-sidebar-text)]"
+          onClick={() => void onInstall()}
+        >
+          Installer MbeukCV
+        </button>
+      )}
       <a
         href="/pro/index.html"
         className="mt-2 block whitespace-nowrap rounded-lg border-t border-white/15 px-3 py-2 text-sm transition duration-150 hover:bg-white/10 [color:var(--color-sidebar-text)]"
