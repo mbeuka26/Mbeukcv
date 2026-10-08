@@ -10,13 +10,23 @@ export default async function ApplicationsPage() {
   const blocked = unconfiguredScreen();
   if (blocked) return blocked;
   const user = await requireUser();
-  let rows: { id: string; applied_at: string; status: string; job_title: string | null; job_url: string | null }[] = [];
+  let rows: {
+    id: string;
+    applied_at: string;
+    status: string;
+    job_title: string | null;
+    job_url: string | null;
+    offer_source: string | null;
+    company_name: string | null;
+    channel: string | null;
+    invitation_id: string | null;
+  }[] = [];
   let loadError: string | null = null;
   try {
     const client = centralCatalog();
     const { data, error } = await client
       .from('applications')
-      .select('id, applied_at, status, job_title, job_url')
+      .select('id, applied_at, status, job_title, job_url, offer_source, company_name, channel, invitation_id')
       .eq('user_id', user.id)
       .order('applied_at', { ascending: false });
     if (error) throw new Error(error.message);
@@ -43,6 +53,10 @@ export default async function ApplicationsPage() {
             status: row.status,
             url: row.job_url,
             when: new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(row.applied_at)),
+            company: row.company_name,
+            source: row.offer_source,
+            channel: row.channel,
+            invitationId: row.invitation_id,
           }))}
         />
       )}

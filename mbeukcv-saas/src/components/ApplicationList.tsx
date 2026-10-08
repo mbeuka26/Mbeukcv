@@ -8,6 +8,10 @@ export interface ApplicationItem {
   status: string;
   title: string;
   url: string | null;
+  company?: string | null;
+  source?: string | null;
+  channel?: string | null;
+  invitationId?: string | null;
 }
 
 export function ApplicationList({ items }: { items: ApplicationItem[] }) {
@@ -34,7 +38,12 @@ export function ApplicationList({ items }: { items: ApplicationItem[] }) {
           {visible.map((item) => (
             <li key={item.id} className="px-4 py-3">
               <p className="font-medium">{item.title}</p>
-              <p className="text-sm text-muted">{item.when} · {item.status}</p>
+              <p className="text-sm text-muted">
+                {item.when} · {item.status}
+                {item.company ? ` · ${item.company}` : ''}
+                {item.source ? ` · ${item.source}` : item.channel === 'mbeuk_exchange' ? ' · Mbeuk Job Exchange' : ''}
+                {item.invitationId ? ' · via invitation' : ''}
+              </p>
               {item.url && (
                 <a className="text-sm text-accent underline-offset-2 hover:underline" href={item.url} target="_blank" rel="noreferrer">
                   Offre d’origine
