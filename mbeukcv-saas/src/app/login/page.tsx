@@ -1,4 +1,5 @@
 import { LoginForm } from '@/components/LoginForm';
+import { InstallAppPanel } from '@/components/InstallAppPanel';
 import { LoginShowcase } from '@/components/login/LoginShowcase';
 
 export default function LoginPage({ searchParams }: { searchParams: { erreur?: string } }) {
@@ -20,9 +21,9 @@ export default function LoginPage({ searchParams }: { searchParams: { erreur?: s
             )}
             <LoginForm configured={configured} />
           </div>
-          <p className="mx-auto mt-4 max-w-md text-center text-xs text-muted">
-            Après connexion : accueil, offres, opportunités MbeukRH et MbeukCV Pro (éditeur avancé).
-          </p>
+          <div className="mx-auto mt-4 max-w-md">
+            <InstallAppPanel compact />
+          </div>
         </div>
       </div>
     </main>

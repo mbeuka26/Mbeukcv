@@ -20,7 +20,7 @@ export async function ensureMbeukPwa() {
   if (!document.querySelector('meta[name="theme-color"]')) {
     const theme = document.createElement("meta");
     theme.name = "theme-color";
-    theme.content = "#075985";
+    theme.content = "#26211d";
     document.head.appendChild(theme);
   }
   if (!("serviceWorker" in navigator)) {
