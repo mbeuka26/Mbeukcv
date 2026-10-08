@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/sync-pro-bundle.mjs",
     "build": "next build",
     "start": "next start",
     "test": "node --experimental-strip-types scripts/check-offers.ts",

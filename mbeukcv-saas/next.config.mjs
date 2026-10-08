@@ -3,7 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   async redirects() {
-    return [{ source: '/pro', destination: '/pro/index.html', permanent: false }];
+    return [
+      { source: '/pro', destination: '/pro/index.html', permanent: false },
+      { source: '/pro/', destination: '/pro/index.html', permanent: false },
+    ];
   },
   async rewrites() {
     return [
