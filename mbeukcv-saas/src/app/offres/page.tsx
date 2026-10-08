@@ -37,9 +37,15 @@ export default async function OffersPage({ searchParams }: { searchParams: { vue
   }) : [];
   let jobs: JobView[] = [];
   let loadError: string | null = null;
+  let catalogStats = { jsearch: 0, local: 0, rapidConfigured: false };
 
   try {
     const client = centralCatalog();
+    catalogStats = {
+      rapidConfigured: Boolean(process.env.RAPIDAPI_KEY?.trim()),
+      jsearch: 0,
+      local: 0,
+    };
     const { data, error } = await client
       .from('job_offers')
       .select('id, title, company, location, type, source, url, description, skills, contact_email, date_posted, deadline_date, expires_at, is_active')
@@ -48,6 +54,10 @@ export default async function OffersPage({ searchParams }: { searchParams: { vue
       .order('date_posted', { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
+    for (const row of data ?? []) {
+      if (row.source === 'jsearch') catalogStats.jsearch += 1;
+      else catalogStats.local += 1;
+    }
     const visible = (data ?? []).filter((row) => !row.expires_at || new Date(row.expires_at).getTime() >= Date.now());
     const cv = profile?.cv;
     const hasCv = Boolean(cv && (cv.skills.length > 0 || cv.summary.trim().length >= 20 || cv.experiences.length > 0));
@@ -99,6 +109,7 @@ export default async function OffersPage({ searchParams }: { searchParams: { vue
       ) : (
         <JobBoard
           jobs={jobs}
+          catalogStats={catalogStats}
           cvReady={Boolean(profile?.cv && (profile.cv.skills.length > 0 || profile.cv.summary.trim().length >= 20 || profile.cv.experiences.length > 0))}
           cvLabel={profile?.cv.title || profile?.cv.classic?.titrePoste || profile?.cv.fullName || 'votre CV'}
           initialView={searchParams.vue === 'toutes' ? 'toutes' : 'profil'}

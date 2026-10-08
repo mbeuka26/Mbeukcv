@@ -39,7 +39,7 @@ export function SettingsForm({ initial }: { initial: KeyStatus }) {
       <fieldset className="sheet space-y-3 p-4">
         <legend className="font-serif text-xl">Clé Claude</legend>
         <p className="text-sm text-muted">
-          La clé est chiffrée sur le compte. Un champ vide ne remplace pas une clé déjà enregistrée. La collecte des offres utilise la clé de la plateforme, pas une clé par client.
+          La clé est chiffrée sur le compte. Un champ vide ne remplace pas une clé déjà enregistrée. Elle sert à l’IA (CV, dossier, lettre de motivation). La collecte JSearch utilise la clé RapidAPI de la plateforme (Paramètres → services plateforme).
         </p>
         <p className="text-sm">Claude : {status.claudeKey ? 'configurée' : 'non configurée'}.</p>
         <label className="label">
