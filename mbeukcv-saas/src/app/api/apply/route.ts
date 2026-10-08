@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sendBrevoEmail } from '@/lib/brevo';
 import { readCv } from '@/lib/cv';
-import { renderCvPdf } from '@/lib/pdf';
+import { renderCvPdf, renderTextPdf } from '@/lib/pdf';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { centralCatalog } from '@/lib/supabase/factory';
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
   const email = String(form.get('email') ?? '').trim();
   const phone = String(form.get('phone') ?? '').trim();
   const coverLetter = String(form.get('coverLetter') ?? '').trim();
+  const attachLetterPdf = String(form.get('attachLetterPdf') ?? '') === 'true';
   if (!jobId || !fullName || !email || coverLetter.length < 20) {
     return NextResponse.json({ error: 'Nom, e-mail et lettre de motivation sont requis.' }, { status: 400 });
   }
@@ -60,6 +61,9 @@ export async function POST(request: Request) {
   }
 
   const pdf = await renderCvPdf({ ...cv, fullName, email, phone: phone || cv.phone });
+  const letterPdf = attachLetterPdf
+    ? await renderTextPdf(`Lettre — ${job.title}`, coverLetter)
+    : null;
   const recipient = job.contact_email?.trim() || email;
   const copyOnly = !job.contact_email;
   const subject = `Candidature - ${job.title} - ${fullName}`;
@@ -77,7 +81,11 @@ export async function POST(request: Request) {
       replyTo: email,
       subject,
       text,
-      attachments: [{ filename: 'cv.pdf', content: Buffer.from(pdf) }, ...attachments],
+      attachments: [
+        { filename: 'cv.pdf', content: Buffer.from(pdf) },
+        ...(letterPdf ? [{ filename: 'lettre-motivation.pdf', content: Buffer.from(letterPdf) }] : []),
+        ...attachments,
+      ],
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'L’e-mail n’a pas pu être envoyé.';

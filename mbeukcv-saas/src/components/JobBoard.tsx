@@ -20,6 +20,11 @@ export interface JobView {
   score: number | null;
   scoreNote: string | null;
   relevant: boolean;
+  country: string | null;
+  isInternational: boolean;
+  minExperienceYears: number | null;
+  educationLevel: string;
+  educationLabel: string;
 }
 
 export function JobBoard({
@@ -44,14 +49,37 @@ export function JobBoard({
   const [syncError, setSyncError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('Tous');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'jsearch' | 'local'>('all');
+  const [intlOnly, setIntlOnly] = useState(false);
+  const [countryFilter, setCountryFilter] = useState('Tous');
+  const [experienceFilter, setExperienceFilter] = useState('Tous');
+  const [educationFilter, setEducationFilter] = useState('Tous');
   const [scope, setScope] = useState<'profil' | 'toutes'>(initialView);
   const [searching, setSearching] = useState(false);
+  const [collectingIntl, setCollectingIntl] = useState(false);
   const router = useRouter();
 
   function chooseScope(next: 'profil' | 'toutes') {
     setScope(next);
     setTypeFilter('Tous');
     router.replace(next === 'toutes' ? '/offres?vue=toutes' : '/offres?vue=profil', { scroll: false });
+  }
+
+  async function collectInternational() {
+    setCollectingIntl(true);
+    setSyncError(null);
+    const response = await fetch('/api/jobs/collect-international', { method: 'POST' });
+    const body = await response.json().catch(() => ({}));
+    setCollectingIntl(false);
+    if (!response.ok) {
+      setSyncError(typeof body.error === 'string' ? body.error : 'Collecte internationale impossible.');
+      return;
+    }
+    const stored = typeof body.stored === 'number' ? body.stored : 0;
+    setToast(stored > 0
+      ? `${stored} offre${stored > 1 ? 's' : ''} internationale${stored > 1 ? 's' : ''} ajoutée${stored > 1 ? 's' : ''} (JSearch / RapidAPI).`
+      : 'Collecte terminée. Aucune nouvelle offre internationale pour le moment.');
+    router.refresh();
   }
 
   async function searchForProfile() {
@@ -77,20 +105,37 @@ export function JobBoard({
     [jobs, scope],
   );
   const types = useMemo(() => ['Tous', ...new Set(scoped.map((job) => job.typeLabel))], [scoped]);
+  const countries = useMemo(
+    () => ['Tous', ...new Set(scoped.map((job) => job.country).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, 'fr')),
+    [scoped],
+  );
+  const educationOptions = useMemo(
+    () => ['Tous', ...new Set(scoped.map((job) => job.educationLabel))],
+    [scoped],
+  );
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
+    const maxExp = experienceFilter === 'Tous' ? null : Number(experienceFilter);
     return scoped
       .filter((job) => {
         if (typeFilter !== 'Tous' && job.typeLabel !== typeFilter) return false;
+        if (sourceFilter === 'jsearch' && job.source !== 'jsearch') return false;
+        if (sourceFilter === 'local' && job.source === 'jsearch') return false;
+        if (intlOnly && !job.isInternational) return false;
+        if (countryFilter !== 'Tous' && job.country !== countryFilter) return false;
+        if (educationFilter !== 'Tous' && job.educationLabel !== educationFilter) return false;
+        if (maxExp != null && !Number.isNaN(maxExp)) {
+          if (job.minExperienceYears == null || job.minExperienceYears > maxExp) return false;
+        }
         if (!needle) return true;
-        return [job.title, job.company, job.location, job.source, job.typeLabel, job.excerpt]
+        return [job.title, job.company, job.location, job.source, job.typeLabel, job.excerpt, job.country]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
           .includes(needle);
       })
       .sort((left, right) => (right.score ?? -1) - (left.score ?? -1) || left.title.localeCompare(right.title, 'fr'));
-  }, [scoped, query, typeFilter]);
+  }, [scoped, query, typeFilter, sourceFilter, intlOnly, countryFilter, educationFilter, experienceFilter]);
 
   return (
     <div>
@@ -116,6 +161,9 @@ export function JobBoard({
               {searching ? 'Recherche' : 'Chercher pour mon métier'}
             </button>
           )}
+          <button type="button" className="btn-ghost" disabled={collectingIntl} onClick={() => void collectInternational()}>
+            {collectingIntl ? 'Collecte…' : 'Actualiser offres internationales'}
+          </button>
         </div>
       </div>
       {matchReady && scope === 'profil' && (
@@ -125,13 +173,13 @@ export function JobBoard({
       )}
       {syncError && <p className="mb-4 text-sm text-[#8d3d24]">{syncError}</p>}
       {jobs.length > 0 && (
-        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px]">
-          <label className="label">
+        <div className="mb-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <label className="label md:col-span-2 lg:col-span-3">
             Rechercher une offre
             <input
               className="field mt-1"
               value={query}
-              placeholder="Titre, lieu, entreprise, source"
+              placeholder="Titre, lieu, entreprise, pays, source"
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
@@ -142,6 +190,44 @@ export function JobBoard({
                 <option key={type}>{type}</option>
               ))}
             </select>
+          </label>
+          <label className="label">
+            Source
+            <select className="field mt-1" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value as 'all' | 'jsearch' | 'local')}>
+              <option value="all">Toutes</option>
+              <option value="jsearch">JSearch (international / RapidAPI)</option>
+              <option value="local">Sites publics (scraping)</option>
+            </select>
+          </label>
+          <label className="label">
+            Pays (offre)
+            <select className="field mt-1" value={countryFilter} onChange={(event) => setCountryFilter(event.target.value)}>
+              {countries.map((country) => (
+                <option key={country}>{country}</option>
+              ))}
+            </select>
+          </label>
+          <label className="label">
+            Expérience max demandée
+            <select className="field mt-1" value={experienceFilter} onChange={(event) => setExperienceFilter(event.target.value)}>
+              <option>Tous</option>
+              <option value="0">Débutant (0 an)</option>
+              <option value="2">Jusqu’à 2 ans</option>
+              <option value="5">Jusqu’à 5 ans</option>
+              <option value="10">Jusqu’à 10 ans</option>
+            </select>
+          </label>
+          <label className="label">
+            Niveau d’études
+            <select className="field mt-1" value={educationFilter} onChange={(event) => setEducationFilter(event.target.value)}>
+              {educationOptions.map((level) => (
+                <option key={level}>{level}</option>
+              ))}
+            </select>
+          </label>
+          <label className="label flex items-end gap-2 pb-2">
+            <input type="checkbox" checked={intlOnly} onChange={(event) => setIntlOnly(event.target.checked)} />
+            <span>International / télétravail uniquement</span>
           </label>
         </div>
       )}
@@ -185,7 +271,15 @@ export function JobBoard({
                   {[job.company, job.location, job.typeLabel].filter(Boolean).join(' · ')}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  {[job.source, job.dateLabel, job.deadline ? `Limite ${job.deadline}` : null].filter(Boolean).join(' · ')}
+                  {[
+                    job.source === 'jsearch' ? 'JSearch' : job.source,
+                    job.isInternational ? 'International' : null,
+                    job.country,
+                    job.minExperienceYears != null ? `${job.minExperienceYears}+ ans exp.` : null,
+                    job.educationLabel !== 'Non précisé' ? job.educationLabel : null,
+                    job.dateLabel,
+                    job.deadline ? `Limite ${job.deadline}` : null,
+                  ].filter(Boolean).join(' · ')}
                 </p>
                 {job.excerpt && <p className="mt-2 text-sm text-ink">{job.excerpt}</p>}
                 {job.scoreNote && <p className="mt-1 text-xs text-muted">{job.scoreNote}</p>}
@@ -312,6 +406,11 @@ function DetailDialog({
     score: detail?.score ?? null,
     scoreNote: detail?.scoreNote ?? null,
     relevant: false,
+    country: null,
+    isInternational: false,
+    minExperienceYears: null,
+    educationLevel: 'any',
+    educationLabel: 'Non précisé',
   });
 
   return (
@@ -365,7 +464,27 @@ function ApplyDialog({
   onSent: (message: string) => void;
 }) {
   const [pending, setPending] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [coverLetter, setCoverLetter] = useState('');
+  const [attachLetterPdf, setAttachLetterPdf] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  async function generateLetter() {
+    setGenerating(true);
+    setError(null);
+    const response = await fetch('/api/apply/cover-letter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId: job.id }),
+    });
+    const body = await response.json().catch(() => ({}));
+    setGenerating(false);
+    if (!response.ok) {
+      setError(typeof body.error === 'string' ? body.error : 'Génération impossible.');
+      return;
+    }
+    if (typeof body.letter === 'string') setCoverLetter(body.letter);
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -373,6 +492,8 @@ function ApplyDialog({
     setError(null);
     const form = new FormData(event.currentTarget);
     form.set('jobId', job.id);
+    form.set('coverLetter', coverLetter);
+    form.set('attachLetterPdf', attachLetterPdf ? 'true' : 'false');
     const response = await fetch('/api/apply', { method: 'POST', body: form });
     const body = await response.json().catch(() => ({}));
     setPending(false);
@@ -405,10 +526,27 @@ function ApplyDialog({
           <label className="label">Nom<input className="field mt-1" name="fullName" required defaultValue={prefill.fullName} /></label>
           <label className="label">E-mail<input className="field mt-1" type="email" name="email" required defaultValue={prefill.email} /></label>
           <label className="label">Téléphone<input className="field mt-1" name="phone" defaultValue={prefill.phone} /></label>
-          <label className="label">
-            Lettre de motivation
-            <textarea className="field mt-1 min-h-32" name="coverLetter" required minLength={20} />
-          </label>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="label mb-0">Lettre de motivation</span>
+              <button type="button" className="btn-ghost text-sm" disabled={generating || pending} onClick={() => void generateLetter()}>
+                {generating ? 'Rédaction…' : 'Rédiger avec l’IA (Claude)'}
+              </button>
+            </div>
+            <textarea
+              className="field min-h-32"
+              name="coverLetter"
+              required
+              minLength={20}
+              value={coverLetter}
+              onChange={(event) => setCoverLetter(event.target.value)}
+              placeholder="Saisissez votre texte ou utilisez l’IA pour l’adapter à cette offre (votre clé Claude dans Paramètres)."
+            />
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input type="checkbox" checked={attachLetterPdf} onChange={(event) => setAttachLetterPdf(event.target.checked)} />
+              Joindre aussi la lettre en PDF (en plus du texte dans l’e-mail)
+            </label>
+          </div>
           <label className="label">
             Autres pièces (CNI, diplômes)
             <input className="mt-1 block w-full text-sm" type="file" name="attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp" />

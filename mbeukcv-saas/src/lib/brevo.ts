@@ -42,6 +42,14 @@ export async function sendBrevoEmail(input: {
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     const message = body && typeof body.message === 'string' ? body.message : `HTTP ${response.status}`;
+    if (/unrecognised ip|unrecognized ip|authorised_ips|authorized_ips/i.test(message)) {
+      throw new Error(
+        'Brevo bloque l’envoi : l’adresse IP du serveur (Vercel) n’est pas autorisée. '
+        + 'Dans Brevo → Paramètres → Sécurité → IP autorisées, désactivez la restriction IP '
+        + 'ou autorisez les IP sortantes de votre hébergement. '
+        + `Détail : ${message}`,
+      );
+    }
     throw new Error(`Échec de l’envoi Brevo : ${message}`);
   }
 }

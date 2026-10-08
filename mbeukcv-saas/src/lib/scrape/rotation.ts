@@ -1,10 +1,12 @@
 export const JSEARCH_CALLS_PER_RUN = 2;
-export const JSEARCH_MONTHLY_CAP = 180;
+export const JSEARCH_MONTHLY_CAP = 200;
 
 export interface MetierQuery {
   id: string;
   label: string;
   query: string;
+  remoteOnly?: boolean;
+  country?: string;
 }
 
 export const METIER_ROTATION: MetierQuery[] = [
@@ -20,6 +22,16 @@ export const METIER_ROTATION: MetierQuery[] = [
   { id: 'petrole', label: 'Pétrole et gaz', query: 'pétrolier Afrique' },
   { id: 'enseignement', label: 'Enseignement', query: 'enseignant Afrique' },
   { id: 'maintenance', label: 'Maintenance', query: 'maintenance industrielle Afrique' },
+];
+
+/** Requêtes orientées offres ouvertes à l’international / télétravail (JSearch). */
+export const INTERNATIONAL_ROTATION: MetierQuery[] = [
+  { id: 'intl-remote-tech', label: 'International — tech remote', query: 'remote software engineer worldwide', remoteOnly: true },
+  { id: 'intl-fr', label: 'International — France', query: 'emploi ingénieur France remote francophone', country: 'fr' },
+  { id: 'intl-ca', label: 'International — Canada', query: 'engineer jobs Canada remote immigration', country: 'ca' },
+  { id: 'intl-global', label: 'International — global', query: 'international jobs Africa applicants welcome', remoteOnly: true },
+  { id: 'intl-uk', label: 'International — Royaume-Uni', query: 'remote jobs UK engineering', country: 'gb' },
+  { id: 'intl-us', label: 'International — États-Unis', query: 'remote US jobs engineering visa sponsor', country: 'us' },
 ];
 
 export function dayInDouala(date = new Date()): string {
@@ -46,7 +58,19 @@ export function queriesForDay(dayIso: string): MetierQuery[] {
   const count = METIER_ROTATION.length;
   if (count === 0) return [];
   const start = ((dayOfYear(dayIso) - 1) * JSEARCH_CALLS_PER_RUN) % count;
-  return Array.from({ length: JSEARCH_CALLS_PER_RUN }, (_, offset) => METIER_ROTATION[(start + offset) % count]);
+  const base = Array.from({ length: JSEARCH_CALLS_PER_RUN }, (_, offset) => METIER_ROTATION[(start + offset) % count]);
+  const dayNum = dayOfYear(dayIso);
+  if (INTERNATIONAL_ROTATION.length === 0) return base;
+  const intl = INTERNATIONAL_ROTATION[Math.floor(dayNum / 2) % INTERNATIONAL_ROTATION.length];
+  return [...base, intl];
+}
+
+export function internationalQueries(limit = 2): MetierQuery[] {
+  const day = dayInDouala();
+  const start = dayOfYear(day) % INTERNATIONAL_ROTATION.length;
+  return Array.from({ length: Math.min(limit, INTERNATIONAL_ROTATION.length) }, (_, i) => (
+    INTERNATIONAL_ROTATION[(start + i) % INTERNATIONAL_ROTATION.length]
+  ));
 }
 
 export function callsForMonth(year: number, month: number): number {
