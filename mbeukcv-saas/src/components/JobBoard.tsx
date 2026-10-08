@@ -173,7 +173,11 @@ export function JobBoard({
           Catalogue actif : {catalogStats.jsearch} offre{catalogStats.jsearch > 1 ? 's' : ''} JSearch (international / RapidAPI),{' '}
           {catalogStats.local} via sites publics (scraping).
           {!catalogStats.rapidConfigured && (
+<<<<<<< HEAD
             <span className="text-[#8d3d24]"> La clé serveur RAPIDAPI_KEY n’est pas configurée — seul le scraping alimente la base.</span>
+=======
+            <span className="text-[#8d3d24]"> La clé RapidAPI (JSearch) n’est pas configurée sur le serveur — seul le scraping alimente la base.</span>
+>>>>>>> cursor/offers-jsearch-diagnostics-a5f3
           )}
           {catalogStats.rapidConfigured && catalogStats.jsearch === 0 && (
             <span> Utilisez « Actualiser offres internationales » ou attendez la collecte automatique (05:00, Douala).</span>
