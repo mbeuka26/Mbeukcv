@@ -9,6 +9,7 @@ const LINKS = [
   { href: '/ia', label: 'IA' },
   { href: '/cv', label: 'Fiche' },
   { href: '/offres', label: 'Offres' },
+  { href: '/opportunites', label: 'Opportunités' },
   { href: '/ats', label: 'ATS' },
   { href: '/recherche', label: 'Recherche' },
   { href: '/candidatures', label: 'Candidatures' },

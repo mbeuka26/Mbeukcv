@@ -1,7 +1,9 @@
 import { unconfiguredScreen } from '@/components/Unconfigured';
 import { Shell } from '@/components/Shell';
 import { CreditPanel } from '@/components/CreditPanel';
+import { DiscoveryToggle } from '@/components/DiscoveryToggle';
 import { SettingsForm } from '@/components/SettingsForm';
+import { readDiscoveryEnabled } from '@/lib/jobExchange/discovery';
 import { ensureProfile, requireUser } from '@/lib/auth';
 import { onlinePackIds, readCreditBalances } from '@/lib/credits';
 import { claudeKeyStatus } from '@/lib/userClaude';
@@ -16,6 +18,7 @@ export default async function SettingsPage() {
   let initial = {
     claudeKey: false,
   };
+  let discoveryEnabled = false;
   let loadError: string | null = null;
   let credits = { claude: 0, rapidapi: 0, claudeFree: 0, rapidapiFree: 0, claudeBought: 0, rapidapiBought: 0 };
   try {
@@ -23,6 +26,7 @@ export default async function SettingsPage() {
     initial = {
       claudeKey: await claudeKeyStatus(user.id),
     };
+    discoveryEnabled = await readDiscoveryEnabled(user.id);
   } catch (error) {
     loadError = error instanceof Error ? error.message : 'Lecture impossible.';
   }
@@ -49,7 +53,14 @@ export default async function SettingsPage() {
         email={user.email ?? ''}
         onlinePacks={onlinePackIds()}
       />
-      {loadError ? <p className="text-sm text-[#8d3d24]">{loadError}</p> : <SettingsForm initial={initial} />}
+      {loadError ? (
+        <p className="text-sm text-[#8d3d24]">{loadError}</p>
+      ) : (
+        <div className="space-y-6">
+          <DiscoveryToggle initialEnabled={discoveryEnabled} />
+          <SettingsForm initial={initial} />
+        </div>
+      )}
     </Shell>
   );
 }
