@@ -16,11 +16,19 @@ const dist = join(proRoot, 'dist');
 const target = join(saasRoot, 'public', 'pro');
 const index = join(target, 'index.html');
 
+function ensureProDependencies() {
+  const vite = join(proRoot, 'node_modules', 'vite');
+  if (existsSync(vite)) return;
+  console.log('sync-pro-bundle: installation des dépendances mbeukcv-pro-v2…');
+  execSync('npm ci', { cwd: proRoot, stdio: 'inherit' });
+}
+
 function buildPro() {
   if (!existsSync(join(proRoot, 'package.json'))) {
     console.warn('sync-pro-bundle: mbeukcv-pro-v2 introuvable — /pro/ restera vide.');
     return false;
   }
+  ensureProDependencies();
   console.log('sync-pro-bundle: construction MbeukCV Pro…');
   execSync('npm run build', {
     cwd: proRoot,
@@ -32,7 +40,7 @@ function buildPro() {
 
 if (!existsSync(index)) {
   if (!existsSync(join(dist, 'index.html'))) {
-    if (!buildPro()) process.exit(0);
+    if (!buildPro()) process.exit(1);
   }
   rmSync(target, { recursive: true, force: true });
   mkdirSync(target, { recursive: true });
