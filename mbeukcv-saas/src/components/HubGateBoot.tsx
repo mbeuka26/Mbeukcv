@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import '@/mbeuk-gate/mbeuk-hub-gate.css';
 import { hubFunctionsUrl } from '@/lib/hubFunctionsUrl';
 
-const PUBLIC_ROUTES = ['/login', '/reinitialiser'];
+const PUBLIC_ROUTES = ['/login', '/reinitialiser', '/pro', '/pro/index.html'];
 
 function isPublicRoute(pathname: string) {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));

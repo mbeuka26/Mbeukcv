@@ -5,13 +5,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        paper: '#f3eee6',
-        surface: '#fbf8f3',
-        ink: '#1d1916',
-        muted: '#5f574e',
-        line: '#e0d6c8',
-        sidebar: '#26211d',
-        accent: '#8d3d24',
+        paper: 'var(--color-paper)',
+        surface: 'var(--color-surface)',
+        ink: 'var(--color-ink)',
+        muted: 'var(--color-muted)',
+        line: 'var(--color-line)',
+        sidebar: 'var(--color-sidebar)',
+        accent: 'var(--color-accent)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],

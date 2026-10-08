@@ -26,15 +26,17 @@ export function SideNav() {
             key={link.href}
             href={link.href}
             aria-current={active ? 'page' : undefined}
-            className={`block whitespace-nowrap px-3 py-2 text-sm text-[#f6f1ea] ${active ? 'bg-white/15' : 'hover:bg-white/10'}`}
+            className={`block whitespace-nowrap rounded-lg px-3 py-2 text-sm transition duration-150 [color:var(--color-sidebar-text)] ${
+              active ? 'bg-white/15' : 'hover:bg-white/10'
+            }`}
           >
             {link.label}
           </Link>
         );
       })}
       <a
-        href="/pro/"
-        className="mt-2 block whitespace-nowrap border-t border-white/15 px-3 py-2 text-sm text-[#f6f1ea] hover:bg-white/10"
+        href="/pro/index.html"
+        className="mt-2 block whitespace-nowrap rounded-lg border-t border-white/15 px-3 py-2 text-sm transition duration-150 hover:bg-white/10 [color:var(--color-sidebar-text)]"
       >
         MbeukCV Pro
       </a>

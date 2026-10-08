@@ -3,49 +3,179 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-paper: #f3eee6;
+    --color-surface: #fbf8f3;
+    --color-ink: #1d1916;
+    --color-muted: #5f574e;
+    --color-line: #e0d6c8;
+    --color-sidebar: #26211d;
+    --color-sidebar-text: #f6f1ea;
+    --color-sidebar-muted: #c8bfb4;
+    --color-accent: #8d3d24;
+    --color-accent-hover: #732f1c;
+    --color-focus: #8d3d24;
+  }
+
   body {
-    @apply bg-paper text-ink antialiased;
+    @apply antialiased;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
   }
 
   :focus-visible {
-    outline: 2px solid #8d3d24;
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
 }
 
 @layer components {
   .sheet {
-    @apply rounded-sm border border-line bg-surface shadow-sheet;
+    @apply rounded-xl border shadow-md transition-shadow duration-200;
+    border-color: var(--color-line);
+    background-color: var(--color-surface);
+  }
+
+  .sheet:hover {
+    box-shadow: 0 8px 24px rgba(29, 25, 22, 0.06);
   }
 
   .label {
-    @apply mb-1 block text-sm font-medium text-ink;
+    @apply mb-1.5 block text-sm font-medium;
+    color: var(--color-ink);
   }
 
   .field {
-    @apply w-full rounded-sm border border-line bg-white px-3 py-2.5 text-sm text-ink placeholder:text-[#8a8176] transition;
+    @apply w-full rounded-lg border px-3.5 py-3 text-sm transition duration-200;
+    border-color: var(--color-line);
+    background-color: #fff;
+    color: var(--color-ink);
+  }
+
+  .field::placeholder {
+    color: color-mix(in srgb, var(--color-muted) 75%, transparent);
+  }
+
+  .field:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-line));
   }
 
   .field:focus {
-    @apply border-accent outline-none;
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent);
   }
 
   .btn {
-    @apply inline-flex min-h-11 items-center justify-center rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sheet transition duration-150 hover:bg-[#732f1c] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-md transition duration-200 hover:-translate-y-px hover:shadow-lg active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0;
+    background-color: var(--color-accent);
+  }
+
+  .btn:hover:not(:disabled) {
+    background-color: var(--color-accent-hover);
   }
 
   .btn-ghost {
-    @apply inline-flex min-h-11 items-center justify-center rounded-sm border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink transition duration-150 hover:border-[#c9bbaa] hover:bg-paper active:translate-y-px;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition duration-200 hover:-translate-y-px active:translate-y-0;
+    border-color: var(--color-line);
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  .btn-ghost:hover {
+    border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-line));
+    background-color: var(--color-paper);
   }
 
   .btn-ok {
-    @apply inline-flex min-h-11 items-center justify-center rounded-sm bg-[#2f6b45] px-4 py-2 text-sm font-semibold text-white shadow-sheet;
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg bg-[#2f6b45] px-4 py-2.5 text-sm font-semibold text-white shadow-md;
+  }
+
+  .login-scene {
+    position: relative;
+    height: min(42vh, 320px);
+    perspective: 900px;
+  }
+
+  .login-scene__glow {
+    position: absolute;
+    inset: 10% 15%;
+    border-radius: 999px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 70%);
+    filter: blur(8px);
+    animation: login-pulse 4s ease-in-out infinite;
+  }
+
+  .login-scene__card {
+    position: absolute;
+    inset: 8% 12%;
+    border-radius: 1rem;
+    background: linear-gradient(145deg, #fff 0%, var(--color-surface) 100%);
+    border: 1px solid var(--color-line);
+    box-shadow: 0 20px 40px rgba(29, 25, 22, 0.12);
+    transform: rotateY(-12deg) rotateX(8deg);
+    padding: 0.5rem;
+  }
+
+  .login-scene__orb {
+    position: absolute;
+    right: 8%;
+    bottom: 6%;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+
+  .login-scene__float-a {
+    animation: login-float-a 5s ease-in-out infinite;
+  }
+
+  .login-scene__float-b {
+    animation: login-float-b 4.2s ease-in-out infinite;
+  }
+}
+
+@keyframes login-float-a {
+  0%,
+  100% {
+    transform: rotateY(-12deg) rotateX(8deg) translateY(0);
+  }
+  50% {
+    transform: rotateY(-8deg) rotateX(5deg) translateY(-10px);
+  }
+}
+
+@keyframes login-float-b {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes login-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .btn,
-  .btn-ghost {
-    transition: none;
+  .btn-ghost,
+  .sheet,
+  .field,
+  .login-scene__float-a,
+  .login-scene__float-b,
+  .login-scene__glow {
+    animation: none !important;
+    transition: none !important;
   }
 }

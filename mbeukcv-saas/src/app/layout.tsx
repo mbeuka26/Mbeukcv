@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Source_Sans_3, Source_Serif_4 } from 'next/font/google';
 import { HubGateBoot } from '@/components/HubGateBoot';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
 
 const sans = Source_Sans_3({ subsets: ['latin'], variable: '--font-sans' });
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body className={`${sans.variable} ${serif.variable} font-sans`}>
+        <ThemeProvider />
         <HubGateBoot />
         {children}
       </body>
