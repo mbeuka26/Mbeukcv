@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { takeRapidCredit } from '@/lib/credits';
-import { commitRotation, planRotation } from '@/lib/scrape/budget';
+import { commitRotation, reserveJSearchCalls } from '@/lib/scrape/budget';
 import { retainDrafts, scrapeJSearch, upsertOffers } from '@/lib/scrape/ingest';
 import { internationalQueries } from '@/lib/scrape/rotation';
 import { createSupabaseAdmin } from '@/lib/supabase/admin';
@@ -26,15 +26,16 @@ export async function POST() {
   if ('error' in charged) return NextResponse.json({ error: charged.error }, { status: charged.status });
 
   const admin = createSupabaseAdmin();
-  const plan = await planRotation(admin);
   const queries = internationalQueries(2);
   if (queries.length === 0) {
     return NextResponse.json({ error: 'Aucune requête internationale disponible.' }, { status: 503 });
   }
+  const budget = await reserveJSearchCalls(admin, queries.length);
+  if (!budget.ok) return NextResponse.json({ error: budget.error }, { status: 429 });
 
   try {
     const remote = await scrapeJSearch(apiKey, queries);
-    if (remote.attempted > 0) await commitRotation(admin, plan.day || new Date().toISOString().slice(0, 10), remote.attempted);
+    if (remote.attempted > 0) await commitRotation(admin, budget.day, remote.attempted);
     const { kept, skippedExpired } = retainDrafts(remote.drafts);
     const stored = await upsertOffers(admin, kept);
     return NextResponse.json({
