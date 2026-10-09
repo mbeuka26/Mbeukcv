@@ -5,7 +5,8 @@ import { AppearancePanel } from '@/components/AppearancePanel';
 import { InstallAppPanel } from '@/components/InstallAppPanel';
 import { SettingsForm } from '@/components/SettingsForm';
 import { readServerThemeId } from '@/lib/appearance/server';
-import { ensureProfile, requireUser } from '@/lib/auth';
+import { NetworkVisibility } from '@/components/NetworkVisibility';
+import { ensureProfile, readPublicProfile, requireUser } from '@/lib/auth';
 import { onlinePackIds, readCreditBalances } from '@/lib/credits';
 import { claudeKeyStatus } from '@/lib/userClaude';
 
@@ -16,6 +17,7 @@ export default async function SettingsPage() {
   if (blocked) return blocked;
   const user = await requireUser();
   await ensureProfile(user.id, user.email ?? null);
+  const profile = await readPublicProfile(user.id);
   let initial = {
     claudeKey: false,
   };
@@ -43,6 +45,7 @@ export default async function SettingsPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>RapidAPI / JSearch (offres internationales) : {process.env.RAPIDAPI_KEY?.trim() ? 'configuré' : 'non configuré sur Vercel'}</li>
           <li>Claude (secours si vous n’avez pas de clé perso) : {process.env.ANTHROPIC_API_KEY?.trim() ? 'configuré' : 'non configuré'}</li>
+          <li>Réseau MbeukRH : {process.env.JOB_EXCHANGE_URL?.trim() && process.env.JOB_EXCHANGE_SERVICE_KEY?.trim() ? 'configuré' : 'non configuré'}</li>
           <li>Brevo (envoi candidatures) : {process.env.BREVO_API_KEY?.trim() && process.env.BREVO_FROM_EMAIL?.trim() ? 'configuré' : 'incomplet'} — si l’envoi échoue pour IP, désactivez la restriction IP dans Brevo.</li>
         </ul>
       </div>
@@ -61,6 +64,7 @@ export default async function SettingsPage() {
           <div id="installer">
             <InstallAppPanel />
           </div>
+          <NetworkVisibility enabled={Boolean(profile?.cv.exchangeDiscover)} />
           <AppearancePanel initialThemeId={themeId} />
           <SettingsForm initial={initial} />
         </div>

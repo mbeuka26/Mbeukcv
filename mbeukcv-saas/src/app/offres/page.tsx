@@ -6,6 +6,9 @@ import { deriveJobMeta, educationLabel } from '@/lib/offers/jobMeta';
 import { scoreOffer } from '@/lib/matching';
 import { offerMatchesProfile, profileTerms } from '@/lib/profileMatch';
 import { centralCatalog } from '@/lib/supabase/factory';
+import { NetworkPanel } from '@/components/NetworkPanel';
+import { exchangeCall, exchangeConfigured } from '@/lib/exchange/client';
+import { talentIdForUser } from '@/lib/exchange/talent';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,6 +104,7 @@ export default async function OffersPage({ searchParams }: { searchParams: { vue
 
   return (
     <Shell email={user.email ?? ''}>
+      <NetworkSection userId={user.id} discover={Boolean(profile?.cv.exchangeDiscover)} />
       {loadError ? (
         <div className="sheet p-6">
           <h1 className="font-serif text-2xl">Offres indisponibles</h1>
@@ -123,4 +127,37 @@ export default async function OffersPage({ searchParams }: { searchParams: { vue
       )}
     </Shell>
   );
+}
+
+async function NetworkSection({ userId, discover }: { userId: string; discover: boolean }) {
+  if (!exchangeConfigured()) {
+    return <NetworkPanel configured={false} discover={discover} jobs={[]} notices={[]} note="" />;
+  }
+  const listed = await exchangeCall({ action: 'list_jobs' });
+  const pulled = await exchangeCall({ action: 'pull_notifications', talentId: talentIdForUser(userId) });
+  const jobs = Array.isArray(listed.jobs) ? listed.jobs.filter((item) => item && typeof item === 'object').map((item) => {
+    const row = item as Record<string, unknown>;
+    return {
+      exchangeJobId: String(row.exchangeJobId || ''),
+      reference: String(row.reference || ''),
+      title: String(row.title || ''),
+      company: String(row.company || ''),
+      location: String(row.location || ''),
+      description: String(row.description || ''),
+      closing: typeof row.closing === 'string' ? row.closing : null,
+      timezone: String(row.timezone || ''),
+    };
+  }).filter((item) => item.exchangeJobId) : [];
+  const notices = Array.isArray(pulled.notifications) ? pulled.notifications.filter((item) => item && typeof item === 'object').map((item) => {
+    const row = item as Record<string, unknown>;
+    return {
+      id: String(row.id || ''),
+      kind: String(row.kind || ''),
+      subjectId: String(row.subjectId || ''),
+      label: String(row.label || ''),
+      status: String(row.status || ''),
+    };
+  }).filter((item) => item.id) : [];
+  const note = listed.confirmed === true ? '' : String(listed.message || '');
+  return <NetworkPanel configured discover={discover} jobs={jobs} notices={notices} note={note} />;
 }

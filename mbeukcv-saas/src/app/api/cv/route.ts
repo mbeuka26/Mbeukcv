@@ -17,6 +17,9 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdmin();
+  const { data: existing } = await admin.from('user_profiles').select('cv_data').eq('id', data.user.id).maybeSingle();
+  const previous = readCv(existing?.cv_data);
+  cv.exchangeDiscover = previous.exchangeDiscover;
   const { error: writeError } = await admin.from('user_profiles').upsert(
     {
       id: data.user.id,

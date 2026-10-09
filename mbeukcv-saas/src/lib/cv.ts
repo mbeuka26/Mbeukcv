@@ -13,6 +13,7 @@ export interface CvData {
   education: { diploma: string; school: string; year: string }[];
   sourceText: string;
   classic: ClassicCvData | null;
+  exchangeDiscover: boolean;
 }
 
 export const emptyCv = (): CvData => ({
@@ -28,6 +29,7 @@ export const emptyCv = (): CvData => ({
   education: [],
   sourceText: '',
   classic: null,
+  exchangeDiscover: false,
 });
 
 export function readCv(value: unknown): CvData {
@@ -61,6 +63,7 @@ export function readCv(value: unknown): CvData {
       : [],
     sourceText: typeof raw.sourceText === 'string' ? raw.sourceText.slice(0, 20000) : '',
     classic: readClassic(raw.classic),
+    exchangeDiscover: raw.exchangeDiscover === true,
   };
 }
 
