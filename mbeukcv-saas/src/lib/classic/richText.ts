@@ -6,14 +6,27 @@ function esc(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-const LIST_STYLE = 'margin:4px 0 6px 18px;padding:0;font-size:11px;color:#222;line-height:1.45;';
-const PARA_STYLE = 'font-size:11px;color:#222;margin:2px 0;line-height:1.45;';
+function listStyle(justify: boolean, rtl: boolean): string {
+  const align = justify ? 'text-align:justify;' : 'text-align:left;';
+  const dir = rtl ? 'direction:rtl;' : '';
+  return `margin:4px 0 6px 18px;padding:0;font-size:11px;color:#222;line-height:1.5;${align}${dir}`;
+}
+
+function paraStyle(justify: boolean, rtl: boolean): string {
+  const align = justify ? 'text-align:justify;' : 'text-align:left;';
+  const dir = rtl ? 'direction:rtl;' : '';
+  return `font-size:11px;color:#222;margin:2px 0;line-height:1.5;${align}${dir}`;
+}
 
 /**
  * Transforme saisie multiligne en HTML : tirets, puces, numérotation ou paragraphes.
  * Ex. "- Tâche A\n- Tâche B" → liste à puces.
  */
-export function formatRichText(text: string, listStyle = LIST_STYLE, paraStyle = PARA_STYLE): string {
+export function formatRichText(text: string, options?: { justify?: boolean; rtl?: boolean }): string {
+  const justify = options?.justify !== false;
+  const rtl = options?.rtl === true;
+  const listCss = listStyle(justify, rtl);
+  const paraCss = paraStyle(justify, rtl);
   const raw = text.trim();
   if (!raw) return '';
 
@@ -39,30 +52,31 @@ export function formatRichText(text: string, listStyle = LIST_STYLE, paraStyle =
     if (bullet) {
       if (open !== 'ul') {
         closeList();
-        html += `<ul style="${listStyle}">`;
+        html += `<ul style="${listCss}">`;
         open = 'ul';
       }
       html += `<li>${esc(bullet[1])}</li>`;
     } else if (numbered) {
       if (open !== 'ol') {
         closeList();
-        html += `<ol style="${listStyle}">`;
+        html += `<ol style="${listCss}">`;
         open = 'ol';
       }
       html += `<li>${esc(numbered[2])}</li>`;
     } else {
       closeList();
-      html += `<div style="${paraStyle}">${esc(trimmed)}</div>`;
+      html += `<div style="${paraCss}">${esc(trimmed)}</div>`;
     }
   }
   closeList();
-  return html || `<div style="${paraStyle}">${esc(raw)}</div>`;
+  return html || `<div style="${paraCss}">${esc(raw)}</div>`;
 }
 
 /** Compétences : lignes ou virgules → liste ou chips. */
-export function formatSkillsList(items: string[]): string {
+export function formatSkillsList(items: string[], options?: { justify?: boolean; rtl?: boolean }): string {
   if (items.length === 0) return '';
   const multiLine = items.length === 1 && items[0].includes('\n');
-  if (multiLine) return formatRichText(items[0]);
-  return `<ul style="${LIST_STYLE}">${items.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`;
+  if (multiLine) return formatRichText(items[0], options);
+  const listCss = listStyle(options?.justify !== false, options?.rtl === true);
+  return `<ul style="${listCss}">${items.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>`;
 }
