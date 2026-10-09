@@ -7,13 +7,14 @@
     "prebuild": "node scripts/sync-pro-bundle.mjs",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-strip-types scripts/check-offers.ts",
+    "test": "node --experimental-strip-types scripts/check-offers.ts && node --experimental-strip-types scripts/test-classic-rich-text.ts",
     "security": "node scripts/ci/security-gate.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "cheerio": "^1.0.0",
+    "google-translate-api-x": "^10.7.3",
     "mbeuk-hub-sdk": "file:vendor/mbeuk-hub-sdk-2.0.0.tgz",
     "next": "^14.2.15",
     "pdf-lib": "^1.17.1",

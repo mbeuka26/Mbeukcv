@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { downloadClassicHtml, printClassicHtml } from '@/lib/classic/exportPdf';
 import { cvFromClassic } from '@/lib/classic/map';
+import {
+  CLASSIC_DISPLAY_LOCALES,
+  LOCALE_LABELS,
+  type ClassicDisplayLocale,
+} from '@/lib/classic/locales';
 import { resizePhotoFile } from '@/lib/classic/photo';
 import { renderClassicCvHtml, TEMPLATE_LABELS } from '@/lib/classic/renderClassicCv';
 import { newId, type ClassicCvData, type CvTemplateId, type LangueItem } from '@/lib/classic/types';
@@ -13,6 +18,45 @@ const NIVEAUX: LangueItem['niveau'][] = ['Notions', 'Intermédiaire', 'Courant',
 
 const LIST_HINT =
   'Utilisez des tirets (-), puces (•) ou numéros (1. 2.) en début de ligne pour des listes de tâches.';
+
+type TranslationEntry = {
+  sourceKey: string;
+  patch: Partial<ClassicCvData>;
+  competences: string[];
+};
+
+function competencesFromSkills(skills: string): string[] {
+  return skills
+    .split(/[,;\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function classicSourceKey(cv: ClassicCvData, competences: string[]): string {
+  return JSON.stringify({
+    nom: cv.nom,
+    titrePoste: cv.titrePoste,
+    ville: cv.ville,
+    resume: cv.resume,
+    competences,
+    experiences: cv.experiences.map((e) => ({
+      id: e.id,
+      poste: e.poste,
+      entreprise: e.entreprise,
+      lieu: e.lieu,
+      description: e.description,
+    })),
+    formations: cv.formations.map((f) => ({
+      id: f.id,
+      diplome: f.diplome,
+      etablissement: f.etablissement,
+      lieu: f.lieu,
+      description: f.description,
+    })),
+    langues: cv.langues.map((l) => ({ id: l.id, langue: l.langue, niveau: l.niveau })),
+    centresInteret: cv.centresInteret,
+  });
+}
 
 export function ClassicStudio({ initial }: { initial: CvData }) {
   const [cv, setCv] = useState<ClassicCvData>(initial.classic ?? {
@@ -37,14 +81,90 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
     misAJourLe: new Date().toISOString(),
   });
   const [skills, setSkills] = useState(cv.competences.join(', '));
+  const [displayLocale, setDisplayLocale] = useState<ClassicDisplayLocale>('fr');
+  const [justifyText, setJustifyText] = useState(true);
+  const [translationCache, setTranslationCache] = useState<Partial<Record<ClassicDisplayLocale, TranslationEntry>>>({});
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState<string | null>(null);
+  const [translateEngine, setTranslateEngine] = useState<'local' | 'claude' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const competencesList = useMemo(() => competencesFromSkills(skills), [skills]);
+  const sourceKey = useMemo(() => classicSourceKey(cv, competencesList), [cv, competencesList]);
+
+  const previewCv = useMemo(() => {
+    const base: ClassicCvData = { ...cv, competences: competencesList };
+    if (displayLocale === 'fr') return base;
+    const hit = translationCache[displayLocale];
+    if (!hit || hit.sourceKey !== sourceKey) return base;
+    return {
+      ...base,
+      ...hit.patch,
+      competences: hit.competences.length ? hit.competences : competencesList,
+    };
+  }, [cv, competencesList, displayLocale, translationCache, sourceKey]);
+
+  useEffect(() => {
+    if (displayLocale === 'fr') {
+      setTranslateError(null);
+      setTranslating(false);
+      setTranslateEngine(null);
+      return;
+    }
+    const hit = translationCache[displayLocale];
+    if (hit?.sourceKey === sourceKey) return;
+
+    let cancelled = false;
+    setTranslating(true);
+    setTranslateError(null);
+
+    const payload: ClassicCvData = { ...cv, competences: competencesList };
+
+    void fetch('/api/cv/classic-translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cv: payload, competences: competencesList, locale: displayLocale }),
+    })
+      .then(async (response) => {
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          translated?: Partial<ClassicCvData>;
+          engine?: 'local' | 'claude';
+        };
+        if (cancelled) return;
+        if (!response.ok) {
+          throw new Error(typeof body.error === 'string' ? body.error : 'Traduction impossible.');
+        }
+        setTranslateEngine(body.engine === 'claude' ? 'claude' : 'local');
+        const translated = body.translated ?? {};
+        const comps = Array.isArray(translated.competences)
+          ? translated.competences.map((item) => String(item).trim()).filter(Boolean)
+          : competencesList;
+        setTranslationCache((current) => ({
+          ...current,
+          [displayLocale]: { sourceKey, patch: translated, competences: comps },
+        }));
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setTranslateError(err instanceof Error ? err.message : 'Traduction impossible.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setTranslating(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayLocale, sourceKey, cv, competencesList]);
+
   const html = useMemo(
-    () => renderClassicCvHtml({ ...cv, competences: skills.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean) }),
-    [cv, skills],
+    () => renderClassicCvHtml(previewCv, { locale: displayLocale, justify: justifyText }),
+    [previewCv, displayLocale, justifyText],
   );
 
   useEffect(() => {
@@ -62,7 +182,7 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
     setPending(true);
     setMessage(null);
     setError(null);
-    const next = { ...cv, competences: skills.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean) };
+    const next = { ...cv, competences: competencesList };
     const payload = cvFromClassic(next, initial);
     const response = await fetch('/api/cv', {
       method: 'POST',
@@ -79,9 +199,11 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
   }
 
   function exportPdf() {
-    printClassicHtml(html, `CV — ${cv.nom || 'MbeukCV'}`);
+    printClassicHtml(html, `CV — ${previewCv.nom || 'MbeukCV'}`);
     setMessage('Choisissez « Enregistrer au format PDF » dans la fenêtre d’impression.');
   }
+
+  const previewPending = displayLocale !== 'fr' && (translating || translationCache[displayLocale]?.sourceKey !== sourceKey);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
@@ -184,10 +306,10 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
           <button type="button" className="btn" disabled={pending} onClick={() => void save()}>
             {pending ? 'Enregistrement' : 'Enregistrer le modèle'}
           </button>
-          <button type="button" className="btn-ghost" onClick={() => exportPdf()}>
+          <button type="button" className="btn-ghost" disabled={previewPending} onClick={() => exportPdf()}>
             Télécharger en PDF
           </button>
-          <button type="button" className="btn-ghost" onClick={() => downloadClassicHtml(html, `cv-${cv.nom || 'mbeuk'}.html`)}>
+          <button type="button" className="btn-ghost" disabled={previewPending} onClick={() => downloadClassicHtml(html, `cv-${previewCv.nom || 'mbeuk'}.html`)}>
             HTML
           </button>
           <Link href="/offres" className="btn-ghost">
@@ -199,6 +321,42 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
       </div>
       <aside className="space-y-3 lg:sticky lg:top-4 lg:self-start">
         <label className="label">
+          Langue de l’aperçu et du PDF
+          <select
+            className="field mt-1"
+            value={displayLocale}
+            onChange={(event) => setDisplayLocale(event.target.value as ClassicDisplayLocale)}
+          >
+            {CLASSIC_DISPLAY_LOCALES.map((locale) => (
+              <option key={locale} value={locale}>
+                {LOCALE_LABELS[locale]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-xs text-muted">
+          Le formulaire reste en français. La traduction passe d’abord par le moteur intégré (gratuit, sans crédit Claude). En cas d’échec, un repli IA peut être utilisé (1 crédit).
+        </p>
+        {translateEngine === 'local' && displayLocale !== 'fr' && !translateError && (
+          <p className="text-xs text-[#2f6b45]">Traduction économique — aucun crédit consommé.</p>
+        )}
+        {translateEngine === 'claude' && !translateError && (
+          <p className="text-xs text-muted">Repli IA utilisé pour cette traduction (crédit consommé).</p>
+        )}
+        {translateError && <p className="text-xs text-[#8d3d24]">{translateError}</p>}
+        <label className="flex cursor-pointer items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={justifyText}
+            onChange={(event) => setJustifyText(event.target.checked)}
+          />
+          <span>
+            <span className="font-medium">Texte justifié</span>
+            <span className="mt-0.5 block text-xs text-muted">Paragraphes et listes alignés sur toute la largeur (recommandé pour l’impression).</span>
+          </span>
+        </label>
+        <label className="label">
           Modèle
           <select className="field mt-1" value={cv.templateId} onChange={(event) => patch({ templateId: event.target.value as CvTemplateId })}>
             {(Object.keys(TEMPLATE_LABELS) as CvTemplateId[]).map((id) => (
@@ -209,11 +367,18 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
           </select>
         </label>
         <p className="text-xs text-muted">Si l’aperçu reste blanc, enregistrez après avoir réduit la photo ou changez de modèle.</p>
-        {previewUrl ? (
-          <iframe title="Aperçu du CV" sandbox="allow-same-origin allow-modals" className="h-[640px] w-full border border-line bg-white shadow-md" src={previewUrl} />
-        ) : (
-          <div className="flex h-[640px] items-center justify-center border border-line bg-paper text-sm text-muted">Chargement de l’aperçu…</div>
-        )}
+        <div className="relative">
+          {previewPending && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-paper/80 text-sm text-muted">
+              Traduction en cours…
+            </div>
+          )}
+          {previewUrl ? (
+            <iframe title="Aperçu du CV" sandbox="allow-same-origin allow-modals" className="h-[640px] w-full border border-line bg-white shadow-md" src={previewUrl} />
+          ) : (
+            <div className="flex h-[640px] items-center justify-center border border-line bg-paper text-sm text-muted">Chargement de l’aperçu…</div>
+          )}
+        </div>
       </aside>
     </div>
   );

@@ -6,4 +6,7 @@ assert.ok(html.includes('<ul'), 'puces attendues');
 assert.ok(html.includes('<ol'), 'numérotation attendue');
 assert.ok(html.includes('Conception'), 'contenu préservé');
 
+const left = formatRichText('Paragraphe long sans liste.', { justify: false });
+assert.ok(!left.includes('text-align:justify'), 'justify désactivable');
+
 console.log('test-classic-rich-text: OK');
