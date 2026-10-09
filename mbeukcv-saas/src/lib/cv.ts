@@ -1,4 +1,4 @@
-import type { ClassicCvData } from '@/lib/classic/types';
+import { isCvTemplateId, type ClassicCvData } from '@/lib/classic/types';
 
 export interface CvData {
   fullName: string;
@@ -68,7 +68,7 @@ function readClassic(value: unknown): ClassicCvData | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Partial<NonNullable<CvData['classic']>>;
   if (typeof raw.nom !== 'string' || typeof raw.templateId !== 'string') return null;
-  const template = raw.templateId === 'moderne' || raw.templateId === 'colore' ? raw.templateId : 'sobre';
+  const template = typeof raw.templateId === 'string' && isCvTemplateId(raw.templateId) ? raw.templateId : 'sobre';
   return {
     id: typeof raw.id === 'string' ? raw.id : 'classic',
     nom: raw.nom,
