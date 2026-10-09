@@ -1,11 +1,5 @@
 /**
- * ════════════════════════════════════════════════════════════
  * Mode Classique — CV à champs structurés (sans IA)
- * ════════════════════════════════════════════════════════════
- * Contrairement au mode IA (texte libre analysé par Claude), ce mode
- * fonctionne à 100% sans clé API : l'utilisateur remplit des champs
- * structurés, choisit un modèle visuel, et le document est assemblé
- * directement en HTML côté client (voir templates/).
  */
 
 export interface ExperienceItem {
@@ -50,7 +44,23 @@ export interface ReferenceItem {
   contact: string;
 }
 
-export type CvTemplateId = 'sobre' | 'moderne' | 'colore';
+export const CV_TEMPLATE_IDS = [
+  'sobre',
+  'moderne',
+  'colore',
+  'europass',
+  'canadien',
+  'belgique',
+  'allemand',
+  'usa',
+  'uk',
+] as const;
+
+export type CvTemplateId = (typeof CV_TEMPLATE_IDS)[number];
+
+export function isCvTemplateId(value: string): value is CvTemplateId {
+  return (CV_TEMPLATE_IDS as readonly string[]).includes(value);
+}
 
 export interface ClassicCvData {
   id: string;

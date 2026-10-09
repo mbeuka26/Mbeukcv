@@ -18,7 +18,7 @@ export default async function ClassicPage() {
     <Shell email={user.email ?? ''}>
       <h1 className="font-serif text-3xl">CV classique</h1>
       <p className="mb-6 mt-2 max-w-2xl text-sm text-muted">
-        Trois modèles visuels, sans appel à l’IA. L’enregistrement met à jour la fiche utilisée pour le pourcentage des offres.
+        Modèles internationaux (Europass, Canada, Belgique, Allemagne, USA, UK…), listes à puces dans les expériences, photo sur tous les modèles, export PDF. Sans appel à l’IA — l’enregistrement alimente aussi le score des offres.
       </p>
       <ClassicStudio initial={cv} />
     </Shell>
