@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { isClassicDisplayLocale, type ClassicDisplayLocale } from '@/lib/classic/locales';
-import { hasTranslatableContent, translateClassicCv } from '@/lib/classic/translateClassic';
+import { hasTranslatableContent } from '@/lib/classic/translateClassicShared';
+import { translateClassicCvPreferred } from '@/lib/classic/translateClassicService';
 import type { ClassicCvData } from '@/lib/classic/types';
-import { takeClaudeCredit } from '@/lib/credits';
 import { createSupabaseServer } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -31,16 +31,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ajoutez du contenu au CV avant de traduire.' }, { status: 400 });
   }
 
-  const charged = await takeClaudeCredit(data.user.id);
-  if ('error' in charged) return NextResponse.json({ error: charged.error }, { status: charged.status });
-
   try {
-    const translated = await translateClassicCv(parsed.cv, parsed.competences, parsed.locale, charged.key);
-    return NextResponse.json({ locale: parsed.locale, translated });
+    const { translated, engine } = await translateClassicCvPreferred(
+      parsed.cv,
+      parsed.competences,
+      parsed.locale,
+      data.user.id,
+    );
+    return NextResponse.json({ locale: parsed.locale, translated, engine });
   } catch (err) {
-    await charged.refund().catch(() => undefined);
     const message = err instanceof Error ? err.message : 'Traduction impossible.';
-    const status = message.includes('Claude') ? 503 : 502;
+    const status = message.includes('crédit') || message.includes('Claude') ? 503 : 502;
     return NextResponse.json({ error: message }, { status });
   }
 }

@@ -86,6 +86,7 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
   const [translationCache, setTranslationCache] = useState<Partial<Record<ClassicDisplayLocale, TranslationEntry>>>({});
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState<string | null>(null);
+  const [translateEngine, setTranslateEngine] = useState<'local' | 'claude' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -110,6 +111,7 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
     if (displayLocale === 'fr') {
       setTranslateError(null);
       setTranslating(false);
+      setTranslateEngine(null);
       return;
     }
     const hit = translationCache[displayLocale];
@@ -130,11 +132,13 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
         const body = (await response.json().catch(() => ({}))) as {
           error?: string;
           translated?: Partial<ClassicCvData>;
+          engine?: 'local' | 'claude';
         };
         if (cancelled) return;
         if (!response.ok) {
           throw new Error(typeof body.error === 'string' ? body.error : 'Traduction impossible.');
         }
+        setTranslateEngine(body.engine === 'claude' ? 'claude' : 'local');
         const translated = body.translated ?? {};
         const comps = Array.isArray(translated.competences)
           ? translated.competences.map((item) => String(item).trim()).filter(Boolean)
@@ -331,8 +335,14 @@ export function ClassicStudio({ initial }: { initial: CvData }) {
           </select>
         </label>
         <p className="text-xs text-muted">
-          Le formulaire reste en français. Changer la langue traduit automatiquement le contenu affiché (1 crédit Claude par langue et version du texte, sauf clé API personnelle dans Paramètres).
+          Le formulaire reste en français. La traduction passe d’abord par le moteur intégré (gratuit, sans crédit Claude). En cas d’échec, un repli IA peut être utilisé (1 crédit).
         </p>
+        {translateEngine === 'local' && displayLocale !== 'fr' && !translateError && (
+          <p className="text-xs text-[#2f6b45]">Traduction économique — aucun crédit consommé.</p>
+        )}
+        {translateEngine === 'claude' && !translateError && (
+          <p className="text-xs text-muted">Repli IA utilisé pour cette traduction (crédit consommé).</p>
+        )}
         {translateError && <p className="text-xs text-[#8d3d24]">{translateError}</p>}
         <label className="flex cursor-pointer items-start gap-2 text-sm">
           <input
