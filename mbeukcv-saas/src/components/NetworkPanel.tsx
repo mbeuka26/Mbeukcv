@@ -79,7 +79,7 @@ export function NetworkPanel({
               <p className="font-medium">{job.title || 'Offre'}</p>
               <p className="text-sm text-muted">{job.company || 'Entreprise'} · {job.reference} · {job.location || 'Lieu non renseigné'}</p>
               {job.description ? <p className="mt-2 text-sm">{job.description.slice(0, 320)}</p> : null}
-              <form className="mt-3" onSubmit={(event: FormEvent) => {
+              <form className="mt-3" onSubmit={(event: FormEvent<HTMLFormElement>) => {
                 event.preventDefault();
                 const consent = new FormData(event.currentTarget).get('consent') === 'yes';
                 void post('/api/exchange/apply', {
